@@ -8,13 +8,13 @@
 #include <gio/gio.h>
 
 #include "network_manager.h"
+#include "../common/define.h"
 #include "../common/utils.h"
 
 #define NETWORK_MANAGER_DBUS_NAME             "org.freedesktop.NetworkManager"
 #define NETWORK_MANAGER_DBUS_PATH             "/org/freedesktop/NetworkManager"
 #define NETWORK_MANAGER_DBUS_INTERFACE        "org.freedesktop.NetworkManager"
 #define NETWORK_MANAGER_DBUS_DEVICE_INTERFACE "org.freedesktop.NetworkManager.Device"
-#define DBUS_PROPERTIES_INTERFACE             "org.freedesktop.DBus.Properties"
 
 #define SYSDIR_PREFIX                         "/sys/class/net"
 #define SYSDIR_SUFFIX                         "statistics"

@@ -8,6 +8,7 @@
 #include <gio/gio.h>
 
 #include "network_manager.h"
+#include "../common/define.h"
 #include "../common/utils.h"
 
 #define NETWORK_MANAGER_DBUS_NAME        "org.freedesktop.NetworkManager"
@@ -15,7 +16,6 @@
 #define NETWORK_MANAGER_DBUS_INTERFACE   "org.freedesktop.NetworkManager"
 #define NETWORK_MANAGER_DBUS_DEVICE      "org.freedesktop.NetworkManager.Device"
 #define NETWORK_MANAGER_DBUS_WIRELESS    "org.freedesktop.NetworkManager.Device.Wireless"
-#define DBUS_PROPERTIES_INTERFACE        "org.freedesktop.DBus.Properties"
 
 /* signals */
 enum
