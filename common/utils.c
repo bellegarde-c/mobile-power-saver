@@ -20,12 +20,10 @@ void write_to_file (const char *filename,
 
     file = fopen(filename, "w");
 
-    if (file == NULL)
-        g_warning ("Can't write to %s", filename);
-    else {
-        fprintf (file, "%s", value);
-        fclose (file);
-    }
+    g_return_if_fail (file != NULL);
+
+    fprintf (file, "%s", value);
+    fclose (file);
 }
 
 
