@@ -350,7 +350,7 @@ bus_init_path (const char *dbus_name,
                gpointer    user_data)
 {
     Bus *self = user_data;
-    GBytes *bytes;
+    g_autoptr (GBytes) bytes = NULL;
     GDBusNodeInfo *introspection_data;
 
     bytes = g_resources_lookup_data (
@@ -363,7 +363,6 @@ bus_init_path (const char *dbus_name,
         g_bytes_get_data (bytes, NULL),
         NULL
     );
-    g_bytes_unref (bytes);
 
     g_assert (introspection_data != NULL);
 
