@@ -8,6 +8,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#include "mpris.h"
+
 #define TYPE_DOZING \
     (dozing_get_type ())
 #define DOZING(obj) \
@@ -43,7 +45,7 @@ struct _DozingClass {
 
 GType           dozing_get_type            (void) G_GNUC_CONST;
 
-GObject*        dozing_new                 (void);
+GObject*        dozing_new                 (Mpris   *mpris);
 void            dozing_start               (Dozing  *dozing);
 void            dozing_stop                (Dozing  *dozing);
 G_END_DECLS

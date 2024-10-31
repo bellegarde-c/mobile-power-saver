@@ -100,7 +100,7 @@ init_radio (ModemOfonoDevice *self)
     );
 
     if (error != NULL) {
-        g_error("Can't connect to OFono radio settings: %s", error->message);
+        g_warning ("Can't connect to OFono radio settings: %s", error->message);
         return;
     }
 
@@ -221,7 +221,7 @@ modem_ofono_device_constructed (GObject *modem_ofono_device)
     );
 
     if (error != NULL) {
-        g_error("Can't connect to OFono modem interface: %s", error->message);
+        g_warning ("Can't connect to OFono modem interface: %s", error->message);
         return;
     }
 

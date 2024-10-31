@@ -355,4 +355,3 @@ mpris_can_freeze (Mpris      *self,
     }
     return TRUE;
 }
-

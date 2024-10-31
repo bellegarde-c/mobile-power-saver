@@ -8,6 +8,18 @@
       <description>When screen is turned off, try to save as much power as possible.</description>
     </key>
 
+    <key name="screen-off-bluetooth-power-saving" type="b">
+      <default>true</default>
+      <summary>Enable Bluetooth power saving</summary>
+      <description>Set Bluetooth power saving when screen is off.</description>
+    </key>
+
+    <key name="bluetooth-power-saving-blacklist" type="as">
+      <default>['io.gitlab.azymohliad.WatchMate']</default>
+      <summary>Do not enable Bluetooth power saving if those apps are running</summary>
+      <description>If applications in list are running, do not enable power saving.</description>
+    </key>
+
     <key name="screen-off-suspend-processes" type="as">
       <default>[]</default>
       <summary>Suspend these processes when screen is off</summary>

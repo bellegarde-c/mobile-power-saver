@@ -78,7 +78,7 @@ connect_logind (Logind *self)
     );
 
     if (self->priv->logind_proxy == NULL)
-        g_error("Can't contact Logind: %s", error->message);
+        g_error ("Can't contact Logind: %s", error->message);
 
     g_signal_connect (
         self->priv->logind_proxy,

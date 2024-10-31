@@ -70,7 +70,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error("Can't get network device properties: %s", error->message);
+        g_warning ("Can't get network device properties: %s", error->message);
         g_clear_object (&network_manager_proxy);
         return;
     }
@@ -91,7 +91,7 @@ add_device (NetworkManager *self,
     g_clear_object (&network_manager_proxy);
 
     if (error != NULL) {
-        g_error (
+        g_warning (
             "Can't read DeviceType: %s",
             error->message
         );
@@ -117,7 +117,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error("Can't get wireless device: %s", error->message);
+        g_warning ("Can't get wireless device: %s", error->message);
         g_clear_object (&network_manager_proxy);
         return;
     }
@@ -171,7 +171,7 @@ get_connection_type (NetworkManager *self)
     );
 
     if (error != NULL) {
-        g_error (
+        g_warning (
             "Can't read properties from NetworkManager: %s", error->message
         );
         return NULL;
@@ -191,7 +191,7 @@ get_connection_type (NetworkManager *self)
     );
 
     if (error != NULL) {
-        g_error (
+        g_warning (
             "Can't read PrimaryConnectionType from NetworkManager: %s",
             error->message
         );
@@ -331,7 +331,7 @@ network_manager_init (NetworkManager *self)
     );
 
     if (error != NULL) {
-        g_error("Can't contact NetworkManager: %s", error->message);
+        g_warning ("Can't contact NetworkManager: %s", error->message);
         return;
     }
 

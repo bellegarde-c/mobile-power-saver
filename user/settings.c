@@ -172,6 +172,34 @@ settings_free_default (void)
 }
 
 /**
+ * settings_can_bluetooth_powersave:
+ *
+ * Check if an application scope allows Bluetooth power saving
+ *
+ * @self: a #Settings
+ * @app_scope: application cgroup scope
+ *
+ * Returns: TRUE if Bluetooth powersaving can be enabled
+ */
+gboolean
+settings_can_bluetooth_powersave (Settings   *self,
+                                  const char *app_scope)
+{
+    g_autoptr (GVariant) value = g_settings_get_value (
+        self->priv->settings, "bluetooth-power-saving-blacklist"
+    );
+    g_autoptr (GVariantIter) iter;
+    const char *application;
+
+    g_variant_get (value, "as", &iter);
+    while (g_variant_iter_loop (iter, "s", &application)) {
+        if (g_strrstr (app_scope, application) != NULL)
+            return FALSE;
+    }
+    return TRUE;
+}
+
+/**
  * settings_can_freeze_app:
  *
  * Check if an application scope can be freezed

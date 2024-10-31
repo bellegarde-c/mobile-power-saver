@@ -110,7 +110,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error("Can't get network device: %s", error->message);
+        g_warning ("Can't get network device: %s", error->message);
         return;
     }
 
@@ -128,7 +128,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error (
+        g_warning (
             "Can't read DeviceType: %s",
             error->message
         );
@@ -245,7 +245,7 @@ network_manager_init (NetworkManager *self)
     );
 
     if (error != NULL) {
-        g_error("Can't contact NetworkManager: %s", error->message);
+        g_warning ("Can't contact NetworkManager: %s", error->message);
         return;
     }
 
