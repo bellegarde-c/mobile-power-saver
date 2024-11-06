@@ -1,4 +1,5 @@
 mps_sources = [
+  'bluetooth.c',
   'bus.c',
   'dozing.c',
   'main.c',

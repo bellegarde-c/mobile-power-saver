@@ -2,7 +2,6 @@
  * Copyright Cedric Bellegarde <cedric.bellegarde@adishatz.org>
  */
 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <signal.h>
@@ -11,10 +10,8 @@
 
 #include "bus.h"
 #include "dozing.h"
-#include "mpris.h"
 #include "network_manager.h"
 #include "settings.h"
-#include "../common/define.h"
 #include "../common/utils.h"
 
 #define DOZING_PRE_SLEEP          60
@@ -152,46 +149,12 @@ unfreeze_apps (Dozing *self)
     return FALSE;
 }
 
-static GList *
-get_apps (Dozing *self)
-{
-    g_autoptr (GDir) sys_dir = NULL;
-    g_autofree char *dirname = g_strdup_printf(
-        CGROUPS_APPS_FREEZE_DIR, getuid(), getuid()
-
-    );
-    const char *app_dir;
-    GList *apps = NULL;
-
-    sys_dir = g_dir_open (dirname, 0, NULL);
-    if (sys_dir == NULL) {
-        g_warning ("Can't find cgroups user app slice: %s", dirname);
-        return NULL;
-    }
-
-    while ((app_dir = g_dir_read_name (sys_dir)) != NULL) {
-        if (g_str_has_prefix (app_dir, "app-") &&
-                g_str_has_suffix (app_dir, ".scope")) {
-            char *app = g_build_filename (
-                dirname, app_dir, "cgroup.freeze", NULL
-            );
-
-            if (!g_file_test (app, G_FILE_TEST_EXISTS))
-                continue;
-
-            apps = g_list_prepend (apps, app);
-        }
-    }
-    return apps;
-}
-
 static void
 dozing_dispose (GObject *dozing)
 {
     Dozing *self = DOZING (dozing);
 
     g_clear_object (&self->priv->network_manager);
-    g_clear_object (&self->priv->mpris);
 
     G_OBJECT_CLASS (dozing_parent_class)->dispose (dozing);
 }
@@ -237,11 +200,13 @@ dozing_init (Dozing *self)
  *
  **/
 GObject *
-dozing_new (void)
+dozing_new (Mpris *mpris)
 {
     GObject *dozing;
 
     dozing = g_object_new (TYPE_DOZING, NULL);
+
+    DOZING (dozing)->priv->mpris = mpris;
 
     return dozing;
 }
@@ -255,7 +220,7 @@ dozing_new (void)
  */
 void
 dozing_start (Dozing  *self) {
-    self->priv->apps = get_apps(self);
+    self->priv->apps = get_applications();
 
     self->priv->type = DOZING_LIGHT;
     self->priv->timeout_id = g_timeout_add_seconds (

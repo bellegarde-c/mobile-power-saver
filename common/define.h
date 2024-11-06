@@ -11,6 +11,8 @@
 #define CGROUPS_USER_SERVICES_FREEZE_DIR "/sys/fs/cgroup/user.slice/user-%d.slice/user@%d.service/session.slice"
 #define CGROUPS_SYSTEM_SERVICES_FREEZE_DIR "/sys/fs/cgroup/system.slice"
 
+#define DBUS_PROPERTIES_INTERFACE "org.freedesktop.DBus.Properties"
+
 typedef enum {
     POWER_PROFILE_POWER_SAVER,
     POWER_PROFILE_BALANCED,

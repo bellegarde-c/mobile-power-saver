@@ -8,13 +8,13 @@
 #include <gio/gio.h>
 
 #include "network_manager.h"
+#include "../common/define.h"
 #include "../common/utils.h"
 
 #define NETWORK_MANAGER_DBUS_NAME             "org.freedesktop.NetworkManager"
 #define NETWORK_MANAGER_DBUS_PATH             "/org/freedesktop/NetworkManager"
 #define NETWORK_MANAGER_DBUS_INTERFACE        "org.freedesktop.NetworkManager"
 #define NETWORK_MANAGER_DBUS_DEVICE_INTERFACE "org.freedesktop.NetworkManager.Device"
-#define DBUS_PROPERTIES_INTERFACE             "org.freedesktop.DBus.Properties"
 
 #define SYSDIR_PREFIX                         "/sys/class/net"
 #define SYSDIR_SUFFIX                         "statistics"
@@ -110,7 +110,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error("Can't get network device: %s", error->message);
+        g_warning ("Can't get network device: %s", error->message);
         return;
     }
 
@@ -128,7 +128,7 @@ add_device (NetworkManager *self,
     );
 
     if (error != NULL) {
-        g_error (
+        g_warning (
             "Can't read DeviceType: %s",
             error->message
         );
@@ -245,7 +245,7 @@ network_manager_init (NetworkManager *self)
     );
 
     if (error != NULL) {
-        g_error("Can't contact NetworkManager: %s", error->message);
+        g_warning ("Can't contact NetworkManager: %s", error->message);
         return;
     }
 

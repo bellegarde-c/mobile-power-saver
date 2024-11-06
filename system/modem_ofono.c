@@ -195,7 +195,7 @@ modem_ofono_init (ModemOfono *self)
     );
 
     if (self->priv->modem_ofono_manager_proxy == NULL)
-        g_error("Can't connect to modem_ofono manager: %s", error->message);
+        g_warning ("Can't connect to modem_ofono manager: %s", error->message);
 
     g_signal_connect_after (
         self->priv->modem_ofono_manager_proxy,

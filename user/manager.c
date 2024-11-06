@@ -7,17 +7,22 @@
 
 #include <gio/gio.h>
 
+#include "bluetooth.h"
 #include "bus.h"
 #include "dozing.h"
 #include "manager.h"
+#include "mpris.h"
 #include "settings.h"
 #include "../common/services.h"
 
 struct _ManagerPrivate {
     Dozing *dozing;
     Services *services;
+    Bluetooth *bluetooth;
+    Mpris *mpris;
 
     gboolean screen_off_power_saving;
+    gboolean screen_off_bluetooth_power_saving;
 };
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -40,6 +45,10 @@ on_setting_changed (Settings   *settings,
 
     if (g_strcmp0 (key, "screen-off-power-saving") == 0) {
         self->priv->screen_off_power_saving = g_variant_get_boolean (value);
+    } else if (g_strcmp0 (key, "screen-off-bluetooth-power-saving") == 0) {
+        self->priv->screen_off_bluetooth_power_saving = g_variant_get_boolean (
+            value
+        );
     }
 }
 
@@ -59,6 +68,11 @@ on_screen_state_changed (Bus      *bus,
             dozing_start (self->priv->dozing);
             services_freeze (self->priv->services, services);
         }
+
+        if (self->priv->screen_off_bluetooth_power_saving) {
+            bluetooth_set_powersave (self->priv->bluetooth, !screen_on);
+        }
+        g_list_free_full (services, g_free);
     }
 }
 
@@ -68,6 +82,7 @@ manager_dispose (GObject *manager)
     Manager *self = MANAGER (manager);
 
     g_clear_object (&self->priv->dozing);
+    g_clear_object (&self->priv->mpris);
     g_clear_object (&self->priv->services);
 
     G_OBJECT_CLASS (manager_parent_class)->dispose (manager);
@@ -94,10 +109,13 @@ manager_init (Manager *self)
 {
     self->priv = manager_get_instance_private (self);
 
-    self->priv->dozing = DOZING (dozing_new ());
+    self->priv->mpris = MPRIS (mpris_new ());
+    self->priv->dozing = DOZING (dozing_new (self->priv->mpris));
     self->priv->services = SERVICES (services_new (G_BUS_TYPE_SESSION));
+    self->priv->bluetooth = BLUETOOTH (bluetooth_new ());
 
     self->priv->screen_off_power_saving = TRUE;
+    self->priv->screen_off_bluetooth_power_saving = TRUE;
 
     g_signal_connect (
         bus_get_default (),

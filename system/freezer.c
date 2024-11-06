@@ -203,6 +203,10 @@ freezer_suspend_processes (Freezer *self,
 
     struct Process *process;
 
+    if (self->priv->processes != NULL) {
+        g_list_free_full (self->priv->processes, g_free);
+    }
+
     self->priv->processes = get_pids (self);
     g_return_if_fail (self->priv->processes != NULL);
 

@@ -13,3 +13,4 @@
         __glist_sub = __glist_sub->next)
 
 void write_to_file (const char *filename, const char *value);
+GList *get_applications (void);
