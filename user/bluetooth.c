@@ -52,9 +52,6 @@ can_powersave (Bluetooth *self)
     const char *application;
     gboolean can_powersave = TRUE;
 
-    /*
-     * FIXME: Allow to set more apps via gsettings
-     */
     GFOREACH (applications, application) {
         if (!settings_can_bluetooth_powersave (settings_get_default(),
                                                application)) {
