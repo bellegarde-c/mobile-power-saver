@@ -1,3 +1,4 @@
 # features
 option('wifi', type: 'boolean', value: true, description: 'Enable or disable Wi-Fi powersave support')
 option('cpuset', type: 'boolean', value: true, description: 'Enable or disable Android like cpuset')
+option('binder', type: 'boolean', value: true, description: 'Enable or disable Binder support')
