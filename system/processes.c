@@ -9,21 +9,21 @@
 
 #include <gio/gio.h>
 
-#include "freezer.h"
+#include "processes.h"
 #include "../common/utils.h"
 
 #define MAX_BUFSZ (1024*64*2)
 #define PROCPATHLEN 64  // must hold /proc/2000222000/task/2000222000/cmdline
 
-struct _FreezerPrivate {
+struct _ProcessesPrivate {
     GList *processes;
 };
 
 G_DEFINE_TYPE_WITH_CODE (
-    Freezer,
-    freezer,
+    Processes,
+    processes,
     G_TYPE_OBJECT,
-    G_ADD_PRIVATE (Freezer)
+    G_ADD_PRIVATE (Processes)
 )
 
 struct Process {
@@ -103,7 +103,7 @@ process_in_list (GList          *names,
 }
 
 static GList *
-get_pids (Freezer *self)
+get_processes (Processes *self)
 {
     GList *processes = NULL;
     g_autoptr (GDir) proc_dir = NULL;
@@ -138,68 +138,68 @@ get_pids (Freezer *self)
 }
 
 static void
-freezer_dispose (GObject *freezer)
+processes_dispose (GObject *processes)
 {
-    G_OBJECT_CLASS (freezer_parent_class)->dispose (freezer);
+    G_OBJECT_CLASS (processes_parent_class)->dispose (processes);
 }
 
 static void
-freezer_finalize (GObject *freezer)
+processes_finalize (GObject *processes)
 {
-    Freezer *self = FREEZER (freezer);
+    Processes *self = PROCESSES (processes);
 
     g_list_free_full (self->priv->processes, process_free);
 
-    G_OBJECT_CLASS (freezer_parent_class)->finalize (freezer);
+    G_OBJECT_CLASS (processes_parent_class)->finalize (processes);
 }
 
 static void
-freezer_class_init (FreezerClass *klass)
+processes_class_init (ProcessesClass *klass)
 {
     GObjectClass *object_class;
 
     object_class = G_OBJECT_CLASS (klass);
-    object_class->dispose = freezer_dispose;
-    object_class->finalize = freezer_finalize;
+    object_class->dispose = processes_dispose;
+    object_class->finalize = processes_finalize;
 }
 
 static void
-freezer_init (Freezer *self)
+processes_init (Processes *self)
 {
-    self->priv = freezer_get_instance_private (self);
+    self->priv = processes_get_instance_private (self);
 
     self->priv->processes = NULL;
 }
 
 /**
- * freezer_new:
+ * processes_new:
  *
- * Creates a new #Freezer
+ * Creates a new #Processes
  *
- * Returns: (transfer full): a new #Freezer
+ * Returns: (transfer full): a new #Processes
  *
  **/
 GObject *
-freezer_new (void)
+processes_new (void)
 {
-    GObject *freezer;
+    GObject *processes;
 
-    freezer = g_object_new (TYPE_FREEZER, NULL);
+    processes = g_object_new (TYPE_PROCESSES, NULL);
 
-    return freezer;
+    return processes;
 }
 
 /**
- * freezer_suspend_processes:
+ * processes_suspend:
  *
  * Suspend processes in list
  *
- * @param #Freezer
+ * @param #Processes
  * @param names: processes list
  */
 void
-freezer_suspend_processes (Freezer *self,
-                           GList   *names) {
+processes_suspend (Processes *self,
+                   GList     *names) {
 
     struct Process *process;
 
@@ -207,7 +207,7 @@ freezer_suspend_processes (Freezer *self,
         g_list_free_full (self->priv->processes, g_free);
     }
 
-    self->priv->processes = get_pids (self);
+    self->priv->processes = get_processes (self);
     g_return_if_fail (self->priv->processes != NULL);
 
     GFOREACH (self->priv->processes, process)
@@ -216,17 +216,17 @@ freezer_suspend_processes (Freezer *self,
 }
 
 /**
- * freezer_resume_processes:
+ * processes_resume:
  *
  * resume processes
  *
- * @param #Freezer
+ * @param #Processes
  * @param names: processes list
  *
  */
 void
-freezer_resume_processes (Freezer *self,
-                          GList   *names) {
+processes_resume (Processes *self,
+                  GList     *names) {
 
     struct Process *process;
 
