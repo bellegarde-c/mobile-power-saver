@@ -11,7 +11,7 @@
 #include "cpufreq.h"
 #include "config.h"
 #include "devfreq.h"
-#include "freezer.h"
+#include "processes.h"
 #include "kernel_settings.h"
 #include "logind.h"
 #include "manager.h"
@@ -29,7 +29,7 @@ struct _ManagerPrivate {
     Cpufreq *cpufreq;
     Devfreq *devfreq;
     KernelSettings *kernel_settings;
-    Freezer *freezer;
+    Processes *processes;
     Services *services;
 #ifdef WIFI_ENABLED
     WiFi *wifi;
@@ -76,8 +76,8 @@ on_screen_state_changed (gpointer ignore,
 
         if (screen_on) {
             cpufreq_set_powersave (self->priv->cpufreq, FALSE, TRUE);
-            freezer_resume_processes (
-                self->priv->freezer,
+            processes_resume (
+                self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
             services_unfreeze (
@@ -86,8 +86,8 @@ on_screen_state_changed (gpointer ignore,
             );
         } else {
             cpufreq_set_powersave (self->priv->cpufreq, TRUE, FALSE);
-            freezer_suspend_processes (
-                self->priv->freezer,
+            processes_suspend (
+                self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
             services_freeze (
@@ -219,7 +219,7 @@ manager_dispose (GObject *manager)
     g_clear_object (&self->priv->cpufreq);
     g_clear_object (&self->priv->devfreq);
     g_clear_object (&self->priv->kernel_settings);
-    g_clear_object (&self->priv->freezer);
+    g_clear_object (&self->priv->processes);
     g_clear_object (&self->priv->services);
 #ifdef WIFI_ENABLED
     g_clear_object (&self->priv->wifi);
@@ -261,7 +261,7 @@ manager_init (Manager *self)
     self->priv->cpufreq = CPUFREQ (cpufreq_new ());
     self->priv->devfreq = DEVFREQ (devfreq_new ());
     self->priv->kernel_settings = KERNEL_SETTINGS (kernel_settings_new ());
-    self->priv->freezer = FREEZER (freezer_new ());
+    self->priv->processes = PROCESSES (processes_new ());
     self->priv->services = SERVICES (services_new (G_BUS_TYPE_SYSTEM));
 #ifdef WIFI_ENABLED
     self->priv->wifi = WIFI (wifi_new ());
