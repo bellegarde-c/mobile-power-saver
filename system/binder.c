@@ -90,6 +90,12 @@ void
 binder_set_power_profile (Binder  *self,
                           PowerProfile power_profile)
 {
+    binder_client_set_power_profile (
+        self->priv->power_client, power_profile
+    );
+    binder_client_set_power_profile (
+        self->priv->radio_client, power_profile
+    );
 }
 
 /**
@@ -105,10 +111,9 @@ void
 binder_set_powersave (Binder  *self,
                       gboolean powersave)
 {
-    binder_client_set_power_profile (
-        self->priv->power_client, POWER_PROFILE_POWER_SAVER
-    );
-    binder_client_set_power_profile (
-        self->priv->radio_client, POWER_PROFILE_POWER_SAVER
-    );
+    if (powersave) {
+        binder_set_power_profile (self, POWER_PROFILE_POWER_SAVER);
+    } else {
+        binder_set_power_profile (self, POWER_PROFILE_BALANCED);
+    }
 }
