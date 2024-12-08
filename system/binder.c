@@ -9,11 +9,9 @@
 #include <stdint.h>
 
 #include "binder.h"
-#include "binder_power.h"
 #include "binder_radio.h"
 
 struct _BinderPrivate {
-    BinderClient *power_client;
     BinderClient *radio_client;
 };
 
@@ -29,7 +27,7 @@ binder_dispose (GObject *binder)
 {
     Binder *self = BINDER (binder);
 
-    g_clear_object (&self->priv->power_client);
+    g_clear_object (&self->priv->radio_client);
 
     G_OBJECT_CLASS (binder_parent_class)->dispose (binder);
 }
@@ -55,7 +53,6 @@ binder_init (Binder *self)
 {
     self->priv = binder_get_instance_private (self);
 
-    self->priv->power_client = BINDER_CLIENT (binder_power_new ());
     self->priv->radio_client = BINDER_CLIENT (binder_radio_new ());
 }
 
@@ -105,9 +102,6 @@ void
 binder_set_powersave (Binder  *self,
                       gboolean powersave)
 {
-    binder_client_set_power_profile (
-        self->priv->power_client, POWER_PROFILE_POWER_SAVER
-    );
     binder_client_set_power_profile (
         self->priv->radio_client, POWER_PROFILE_POWER_SAVER
     );

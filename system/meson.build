@@ -30,7 +30,6 @@ if binder_enabled
   mps_sources += [
     'binder.c',
     'binder_client.c',
-    'binder_power.c',
     'binder_radio.c',
   ]
 endif
