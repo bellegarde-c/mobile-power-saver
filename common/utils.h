@@ -14,3 +14,5 @@
 
 void write_to_file (const char *filename, const char *value);
 GList *get_applications (void);
+GList *get_subcgroups (const char *path);
+GList *get_cgroup_pids (const char *path);

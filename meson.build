@@ -23,6 +23,7 @@ sbin_dir = join_paths(get_option('prefix'), get_option('sbindir'))
 
 binder_enabled = get_option('binder')
 wifi_enabled = get_option('wifi')
+cpuset_enabled = get_option('cpuset')
 
 config_h = configuration_data()
 config_h.set('APP_ID', '"org.adishatz.Mps"')
@@ -116,3 +117,6 @@ add_project_arguments(project_c_args, language: 'c')
 subdir('system')
 subdir('user')
 subdir('data')
+if cpuset_enabled
+subdir('sh')
+endif

@@ -41,13 +41,25 @@ struct _ProcessesClass {
     GObjectClass parent_class;
 };
 
-GType           processes_get_type  (void) G_GNUC_CONST;
+GType           processes_get_type                     (void) G_GNUC_CONST;
 
-GObject*        processes_new       (void);
-void            processes_suspend   (Processes *processes,
-                                     GList     *names);
-void            processes_resume    (Processes *processes,
-                                     GList     *names);
+GObject*        processes_new                          (void);
+void            processes_update                       (Processes *self);
+void            processes_suspend                      (Processes *self,
+                                                        GList     *names);
+void            processes_resume                       (Processes *self,
+                                                        GList     *names);
+void            processes_names_set_background         (Processes *self,
+                                                        GList     *names);
+void            processes_names_set_system_background  (Processes *self,
+                                                        GList     *names);
+void            processes_cgroups_set_background       (Processes *self,
+                                                        GList     *cgroups);
+void            processes_cgroups_set_system_background (Processes *self,
+                                                         GList     *cgroups);
+void            processes_cpuset_set_blacklist          (Processes *self,
+                                                         GList     *blacklist);
+
 G_END_DECLS
 
 #endif
