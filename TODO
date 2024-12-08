@@ -1,0 +1,2 @@
+Rework system/bus.c signals: group them by type
+processes_cgroups_set_background et system_background: merge

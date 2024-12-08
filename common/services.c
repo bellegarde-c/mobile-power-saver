@@ -32,19 +32,19 @@ get_cgroups_paths (Services *self)
         paths = g_list_append (
             paths,
             g_strdup_printf(
-                CGROUPS_USER_SERVICES_FREEZE_DIR, getuid(), getuid()
+                CGROUPS_USER_SERVICES_DIR, getuid(), getuid()
             )
         );
         paths = g_list_append (
             paths,
             g_strdup_printf(
-                CGROUPS_APPS_FREEZE_DIR, getuid(), getuid()
+                CGROUPS_APPS_DIR, getuid(), getuid()
             )
         );
     } else {
         paths = g_list_append (
             paths,
-            g_strdup (CGROUPS_SYSTEM_SERVICES_FREEZE_DIR)
+            g_strdup (CGROUPS_SYSTEM_SERVICES_DIR)
         );
     }
 

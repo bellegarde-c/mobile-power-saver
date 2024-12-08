@@ -8,6 +8,7 @@
 #include "config.h"
 #include "bus.h"
 #include "settings.h"
+#include "../common/define.h"
 
 #define DBUS_MPS_NAME                "org.adishatz.Mps"
 #define DBUS_MPS_PATH                "/org/adishatz/Mps"
@@ -93,6 +94,13 @@ bus_class_init (BusClass *klass)
 static void
 bus_init (Bus *self)
 {
+    g_autofree char *cgroups_user_services_dir = g_strdup_printf(
+        CGROUPS_USER_SERVICES_DIR, getuid(), getuid()
+    );
+    g_autofree char *cgroups_apps_dir = g_strdup_printf(
+        CGROUPS_APPS_DIR, getuid(), getuid()
+    );
+
     self->priv = bus_get_instance_private (self);
 
     self->priv->mps_proxy = g_dbus_proxy_new_for_bus_sync (
@@ -111,6 +119,17 @@ bus_init (Bus *self)
         "g-signal",
         G_CALLBACK (on_mps_proxy_signal),
         self
+    );
+
+    bus_set_value (
+        self,
+        "cgroups-user-services-dir",
+        g_variant_new ("s", cgroups_user_services_dir)
+    );
+    bus_set_value (
+        self,
+        "cgroups-apps-dir",
+        g_variant_new ("s", cgroups_apps_dir)
     );
 }
 

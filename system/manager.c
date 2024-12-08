@@ -22,6 +22,7 @@
 
 #include "../common/define.h"
 #include "../common/services.h"
+#include "../common/utils.h"
 
 #define APPLY_DELAY 500
 
@@ -37,7 +38,11 @@ struct _ManagerPrivate {
 
     gboolean screen_off_power_saving;
     GList *screen_off_suspend_processes;
+    GList *screen_off_background_processes;
     GList *screen_off_suspend_services;
+
+    char *cgroups_user_services_dir;
+    char *cgroups_user_apps_dir;
 
     gboolean radio_power_saving;
 };
@@ -64,6 +69,9 @@ on_screen_state_changed (gpointer ignore,
                          gpointer user_data)
 {
     Manager *self = MANAGER (user_data);
+    GList *system_cgroups = get_subcgroups (CGROUPS_SYSTEM_SERVICES_DIR);
+    GList *user_cgroups = get_subcgroups (self->priv->cgroups_user_services_dir);
+    GList *apps_cgroups = get_subcgroups (self->priv->cgroups_user_apps_dir);
 
     if (self->priv->screen_off_power_saving) {
         bus_screen_state_changed (bus_get_default (), screen_on);
@@ -80,15 +88,48 @@ on_screen_state_changed (gpointer ignore,
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
+            processes_names_set_system_background (
+                self->priv->processes,
+                self->priv->screen_off_background_processes
+            );
+            processes_cgroups_set_system_background (
+                self->priv->processes,
+                system_cgroups
+            );
+            processes_cgroups_set_system_background (
+                self->priv->processes,
+                user_cgroups
+            );
+            processes_cgroups_set_system_background (
+                self->priv->processes,
+                apps_cgroups
+            );
             services_unfreeze (
                 self->priv->services,
                 self->priv->screen_off_suspend_services
             );
         } else {
             cpufreq_set_powersave (self->priv->cpufreq, TRUE, FALSE);
+            processes_update (self->priv->processes);
             processes_suspend (
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
+            );
+            processes_names_set_background (
+                self->priv->processes,
+                self->priv->screen_off_background_processes
+            );
+            processes_cgroups_set_background (
+                self->priv->processes,
+                system_cgroups
+            );
+            processes_cgroups_set_background (
+                self->priv->processes,
+                user_cgroups
+            );
+            processes_cgroups_set_background (
+                self->priv->processes,
+                apps_cgroups
             );
             services_freeze (
                 self->priv->services,
@@ -96,6 +137,9 @@ on_screen_state_changed (gpointer ignore,
             );
         }
     }
+
+    g_list_free_full (system_cgroups, g_free);
+    g_list_free_full (user_cgroups, g_free);
 }
 
 static void
@@ -150,6 +194,30 @@ on_screen_off_suspend_processes_changed (Bus      *bus,
 }
 
 static void
+on_screen_off_background_processes_changed (Bus      *bus,
+                                            GVariant *value,
+                                            gpointer  user_data)
+{
+    Manager *self = MANAGER (user_data);
+    g_autoptr (GVariantIter) iter;
+    const char *process;
+
+    g_list_free_full (
+        self->priv->screen_off_background_processes, g_free
+    );
+    self->priv->screen_off_background_processes = NULL;
+
+    g_variant_get (value, "as", &iter);
+    while (g_variant_iter_loop (iter, "s", &process)) {
+        self->priv->screen_off_background_processes =
+            g_list_append (
+                self->priv->screen_off_background_processes, g_strdup (process)
+            );
+    }
+    g_variant_unref (value);
+}
+
+static void
 on_devfreq_blacklist_setted (Bus      *bus,
                              GVariant *value,
                              gpointer  user_data)
@@ -163,6 +231,54 @@ on_devfreq_blacklist_setted (Bus      *bus,
         devfreq_blacklist (self->priv->devfreq, device);
     }
     g_variant_unref (value);
+}
+
+static void
+on_cpuset_blacklist_setted (Bus      *bus,
+                            GVariant *value,
+                            gpointer  user_data)
+{
+    Manager *self = MANAGER (user_data);
+    GList *blacklist = NULL;
+    g_autoptr (GVariantIter) iter;
+    const char *item;
+
+    g_variant_get (value, "as", &iter);
+    while (g_variant_iter_loop (iter, "s", &item)) {
+        blacklist = g_list_append (blacklist, g_strdup (item));
+    }
+
+    processes_cpuset_set_blacklist (self->priv->processes, blacklist);
+
+    g_variant_unref (value);
+}
+
+static void
+on_cgroups_user_services_dir_setted (Bus      *bus,
+                                     GVariant *value,
+                                     gpointer  user_data)
+{
+    Manager *self = MANAGER (user_data);
+
+    if (self->priv->cgroups_user_services_dir != NULL) {
+        g_free (self->priv->cgroups_user_services_dir);
+    }
+
+    g_variant_get (value, "s", &self->priv->cgroups_user_services_dir);
+}
+
+static void
+on_cgroups_user_apps_dir_setted (Bus      *bus,
+                                 GVariant *value,
+                                 gpointer  user_data)
+{
+    Manager *self = MANAGER (user_data);
+
+    if (self->priv->cgroups_user_apps_dir != NULL) {
+        g_free (self->priv->cgroups_user_apps_dir);
+    }
+
+    g_variant_get (value, "s", &self->priv->cgroups_user_apps_dir);
 }
 
 static void
@@ -237,8 +353,19 @@ manager_finalize (GObject *manager)
         self->priv->screen_off_suspend_processes, g_free
     );
     g_list_free_full (
+        self->priv->screen_off_background_processes, g_free
+    );
+    g_list_free_full (
         self->priv->screen_off_suspend_services, g_free
     );
+
+    if (self->priv->cgroups_user_services_dir != NULL) {
+        g_free (self->priv->cgroups_user_services_dir);
+    }
+
+    if (self->priv->cgroups_user_apps_dir != NULL) {
+        g_free (self->priv->cgroups_user_apps_dir);
+    }
 
     G_OBJECT_CLASS (manager_parent_class)->finalize (manager);
 }
@@ -270,16 +397,11 @@ manager_init (Manager *self)
     self->priv->screen_off_power_saving = TRUE;
     self->priv->radio_power_saving = FALSE;
     self->priv->screen_off_suspend_processes = NULL;
+    self->priv->cgroups_user_services_dir = NULL;
+    self->priv->cgroups_user_apps_dir = NULL;
 
     g_signal_connect (
         logind_get_default (),
-        "screen-state-changed",
-        G_CALLBACK (on_screen_state_changed),
-        self
-    );
-
-    g_signal_connect (
-        bus_get_default (),
         "screen-state-changed",
         G_CALLBACK (on_screen_state_changed),
         self
@@ -306,6 +428,12 @@ manager_init (Manager *self)
     );
     g_signal_connect (
         bus_get_default (),
+        "screen-off-background-processes-changed",
+        G_CALLBACK (on_screen_off_background_processes_changed),
+        self
+    );
+    g_signal_connect (
+        bus_get_default (),
         "screen-off-suspend-services-changed",
         G_CALLBACK (on_screen_off_suspend_services_changed),
         self
@@ -314,6 +442,24 @@ manager_init (Manager *self)
         bus_get_default (),
         "devfreq-blacklist-setted",
         G_CALLBACK (on_devfreq_blacklist_setted),
+        self
+    );
+    g_signal_connect (
+        bus_get_default (),
+        "cpuset-blacklist-setted",
+        G_CALLBACK (on_cpuset_blacklist_setted),
+        self
+    );
+    g_signal_connect (
+        bus_get_default (),
+        "cgroups-user-services-dir-setted",
+        G_CALLBACK (on_cgroups_user_services_dir_setted),
+        self
+    );
+    g_signal_connect (
+        bus_get_default (),
+        "cgroups-user-apps-dir-setted",
+        G_CALLBACK (on_cgroups_user_apps_dir_setted),
         self
     );
     g_signal_connect (

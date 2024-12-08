@@ -18,15 +18,6 @@
       </method>
 
       <!--
-        SimulateSreenOff:
-
-        Simulate screen off state
-      -->
-      <method name='SimulateScreenOff'>
-        <arg direction='in' name='simulate' type='b'/>
-      </method>
-
-      <!--
         ScreenStateChanged:
 
         Signal emitted when screen state changed.

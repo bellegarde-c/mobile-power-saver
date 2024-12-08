@@ -21,9 +21,13 @@ enum
     SCREEN_OFF_POWER_SAVING_CHANGED,
     SCREEN_OFF_SUSPEND_PROCESSES_CHANGED,
     SCREEN_OFF_SUSPEND_SERVICES_CHANGED,
+    SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED,
     SCREEN_STATE_CHANGED,
     DEVFREQ_BLACKLIST_SETTED,
+    CPUSET_BLACKLIST_SETTED,
     LITTLE_CLUSTER_POWERSAVE_CHANGED,
+    CGROUPS_USER_SERVICES_DIR_SETTED,
+    CGROUPS_USER_APPS_DIR_SETTED,
     SUSPEND_MODEM_CHANGED,
     RADIO_POWER_SAVING_CHANGED,
     RADIO_POWER_SAVING_BLACKLIST_CHANGED,
@@ -148,6 +152,13 @@ handle_method_call (GDBusConnection       *connection,
                 0,
                 g_steal_pointer (&value)
             );
+        } else if (g_strcmp0 (setting, "screen-off-background-processes") == 0) {
+            g_signal_emit(
+                self,
+                signals[SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED],
+                0,
+                g_steal_pointer (&value)
+            );
         } else if (g_strcmp0 (setting, "screen-off-suspend-system-services") == 0) {
             g_signal_emit(
                 self,
@@ -162,12 +173,33 @@ handle_method_call (GDBusConnection       *connection,
                 0,
                 g_steal_pointer (&value)
             );
+        } else if (g_strcmp0 (setting, "cpuset-blacklist") == 0) {
+            g_signal_emit(
+                self,
+                signals[CPUSET_BLACKLIST_SETTED],
+                0,
+                g_steal_pointer (&value)
+            );
         } else if (g_strcmp0 (setting, "little-cluster-powersave") == 0) {
             g_signal_emit(
                 self,
                 signals[LITTLE_CLUSTER_POWERSAVE_CHANGED],
                 0,
                 g_variant_get_boolean (value)
+            );
+        } else if (g_strcmp0 (setting, "cgroups-user-services-dir") == 0) {
+            g_signal_emit(
+                self,
+                signals[CGROUPS_USER_SERVICES_DIR_SETTED],
+                0,
+                g_steal_pointer (&value)
+            );
+        } else if (g_strcmp0 (setting, "cgroups-apps-dir") == 0) {
+            g_signal_emit(
+                self,
+                signals[CGROUPS_USER_APPS_DIR_SETTED],
+                0,
+                g_steal_pointer (&value)
             );
         } else if (g_strcmp0 (setting, "suspend-modem") == 0) {
             g_signal_emit(
@@ -196,24 +228,6 @@ handle_method_call (GDBusConnection       *connection,
             invocation, NULL
         );
 
-        return;
-    }
-
-    if (g_strcmp0 (method_name, "SimulateScreenOff") == 0) {
-        gboolean screen_off;
-
-        g_variant_get (parameters, "(b)", &screen_off);
-
-        g_signal_emit(
-            self,
-            signals[SCREEN_STATE_CHANGED],
-            0,
-            !screen_off
-        );
-
-        g_dbus_method_invocation_return_value (
-            invocation, NULL
-        );
         return;
     }
 }
@@ -453,6 +467,17 @@ bus_class_init (BusClass *klass)
         G_TYPE_VARIANT
     );
 
+    signals[SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED] = g_signal_new (
+        "screen-off-background-processes-changed",
+        G_OBJECT_CLASS_TYPE (object_class),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL, NULL,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_VARIANT
+    );
+
     signals[SCREEN_OFF_SUSPEND_SERVICES_CHANGED] = g_signal_new (
         "screen-off-suspend-services-changed",
         G_OBJECT_CLASS_TYPE (object_class),
@@ -464,19 +489,41 @@ bus_class_init (BusClass *klass)
         G_TYPE_VARIANT
     );
 
-    signals[SCREEN_STATE_CHANGED] = g_signal_new (
-        "screen-state-changed",
+    signals[DEVFREQ_BLACKLIST_SETTED] = g_signal_new (
+        "devfreq-blacklist-setted",
         G_OBJECT_CLASS_TYPE (object_class),
         G_SIGNAL_RUN_LAST,
         0,
         NULL, NULL, NULL,
         G_TYPE_NONE,
         1,
-        G_TYPE_BOOLEAN
+        G_TYPE_VARIANT
     );
 
-    signals[DEVFREQ_BLACKLIST_SETTED] = g_signal_new (
-        "devfreq-blacklist-setted",
+    signals[CPUSET_BLACKLIST_SETTED] = g_signal_new (
+        "cpuset-blacklist-setted",
+        G_OBJECT_CLASS_TYPE (object_class),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL, NULL,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_VARIANT
+    );
+
+    signals[CGROUPS_USER_SERVICES_DIR_SETTED] = g_signal_new (
+        "cgroups-user-services-dir-setted",
+        G_OBJECT_CLASS_TYPE (object_class),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL, NULL,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_VARIANT
+    );
+
+    signals[CGROUPS_USER_APPS_DIR_SETTED] = g_signal_new (
+        "cgroups-user-apps-dir-setted",
         G_OBJECT_CLASS_TYPE (object_class),
         G_SIGNAL_RUN_LAST,
         0,
