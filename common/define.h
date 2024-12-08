@@ -20,4 +20,9 @@ typedef enum {
     POWER_PROFILE_LAST
 } PowerProfile;
 
+typedef enum {
+    BINDER_SERVICE_MANAGER_TYPE_AIDL,
+    BINDER_SERVICE_MANAGER_TYPE_HIDL
+} BinderServiceManagerType;
+
 #endif

@@ -16,6 +16,10 @@
 #include "logind.h"
 #include "manager.h"
 
+#ifdef BINDER_ENABLED
+#include "binder.h"
+#endif
+
 #ifdef WIFI_ENABLED
 #include "wifi.h"
 #endif
@@ -26,6 +30,9 @@
 #define APPLY_DELAY 500
 
 struct _ManagerPrivate {
+#ifdef BINDER_ENABLED
+    Binder *binder;
+#endif
     Cpufreq *cpufreq;
     Devfreq *devfreq;
     KernelSettings *kernel_settings;
@@ -67,11 +74,16 @@ on_screen_state_changed (gpointer ignore,
 
     if (self->priv->screen_off_power_saving) {
         bus_screen_state_changed (bus_get_default (), screen_on);
+
         devfreq_set_powersave (self->priv->devfreq, !screen_on);
         kernel_settings_set_powersave (self->priv->kernel_settings, !screen_on);
+
 #ifdef WIFI_ENABLED
         if (self->priv->radio_power_saving)
             wifi_set_powersave (self->priv->wifi, !screen_on);
+#endif
+#ifdef BINDER_ENABLED
+        binder_set_powersave (self->priv->binder, !screen_on);
 #endif
 
         if (screen_on) {
@@ -108,6 +120,9 @@ on_power_saving_mode_changed (Bus         *bus,
 
     cpufreq_set_governor (self->priv->cpufreq, governor);
     devfreq_set_governor (self->priv->devfreq, governor);
+#ifdef BINDER_ENABLED
+    binder_set_power_profile (self->priv->binder, power_profile);
+#endif
 }
 
 static void
@@ -216,6 +231,9 @@ manager_dispose (GObject *manager)
 {
     Manager *self = MANAGER (manager);
 
+#ifdef BINDER_ENABLED
+    g_clear_object (&self->priv->binder);
+#endif
     g_clear_object (&self->priv->cpufreq);
     g_clear_object (&self->priv->devfreq);
     g_clear_object (&self->priv->kernel_settings);
@@ -258,6 +276,9 @@ manager_init (Manager *self)
 {
     self->priv = manager_get_instance_private (self);
 
+#ifdef BINDER_ENABLED
+    self->priv->binder = BINDER (binder_new ());
+#endif
     self->priv->cpufreq = CPUFREQ (cpufreq_new ());
     self->priv->devfreq = DEVFREQ (devfreq_new ());
     self->priv->kernel_settings = KERNEL_SETTINGS (kernel_settings_new ());
