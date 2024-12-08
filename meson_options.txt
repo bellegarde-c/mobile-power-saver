@@ -1,3 +1,2 @@
 # features
 option('wifi', type: 'boolean', value: true, description: 'Enable or disable Wi-Fi powersave support')
-option('mm', type: 'boolean', value: false, description: 'Enable ModemManager support')
