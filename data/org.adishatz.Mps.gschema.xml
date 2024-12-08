@@ -21,7 +21,7 @@
     </key>
 
     <key name="screen-off-suspend-processes" type="as">
-      <default>[]</default>
+      <default>['msm_irqbalance']</default>
       <summary>Suspend these processes when screen is off</summary>
       <description>When screen is turned off, processes in list are suspended.</description>
     </key>
