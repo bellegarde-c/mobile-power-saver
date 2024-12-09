@@ -280,9 +280,9 @@ processes_resume (Processes *self,
  * @param #CpuSet
  *
  */
-void  processes_names_set_cpuset (Processes *self,
-                                  GList     *names,
-                                  CpuSet     cpuset) {
+void  processes_set_cpuset (Processes *self,
+                            GList     *processes,
+                            CpuSet     cpuset) {
     struct Process *process;
     const char *cpuset_path;
 
@@ -291,7 +291,7 @@ void  processes_names_set_cpuset (Processes *self,
     cpuset_path = get_cpuset_path (cpuset);
 
     GFOREACH (self->priv->processes, process) {
-        if (process_in_list (names, process)) {
+        if (process_in_list (processes, process)) {
             g_autofree char *pid_str = g_strdup_printf("%d", process->pid);
 
             write_to_file (cpuset_path, pid_str);
@@ -300,35 +300,35 @@ void  processes_names_set_cpuset (Processes *self,
 }
 
 /**
- * processes_cgroups_set_cpuset:
+ * processes_set_services_cpuset:
  *
- * Move processes to background cpuset
+ * Move service to background cpuset
  *
  * @param #Processes
  * @param cgrousp: cgroup list
  * @param #CpuSet
  *
  */
-void  processes_cgroups_set_cpuset (Processes *self,
-                                    GList     *cgroups,
-                                    CpuSet     cpuset) {
-    const char *cgroup;
+void  processes_set_services_cpuset (Processes *self,
+                                     GList     *services,
+                                     CpuSet     cpuset) {
+    const char *service;
 
-    GFOREACH (cgroups, cgroup) {
+    GFOREACH (services, service) {
         GList *pids = NULL;
         pid_t *pid;
         const char *name;
         const char *cpuset_path = NULL;
 
         GFOREACH_SUB (self->priv->cpuset_blacklist, name) {
-            if (g_strrstr (cgroup, name) != NULL) {
+            if (g_strrstr (service, name) != NULL) {
                 goto end_loop;
             }
         }
 
         if (cpuset == CPUSET_FOREGROUND) {
             GFOREACH_SUB (self->priv->cpuset_topapp, name) {
-                if (g_strrstr (cgroup, name) != NULL) {
+                if (g_strrstr (service, name) != NULL) {
                     cpuset_path = get_cpuset_path (CPUSET_TOPAPP);
                     break;
                 }
@@ -338,7 +338,7 @@ void  processes_cgroups_set_cpuset (Processes *self,
         if (cpuset_path == NULL)
             cpuset_path = get_cpuset_path (cpuset);
 
-        pids = get_cgroup_pids (cgroup);
+        pids = get_cgroup_pids (service);
         GFOREACH_SUB (pids, pid) {
             g_autofree char *pid_str = g_strdup_printf("%d", *pid);
 

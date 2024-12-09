@@ -31,8 +31,7 @@ GList *get_applications (void)
 {
     g_autoptr (GDir) sys_dir = NULL;
     g_autofree char *dirname = g_strdup_printf(
-        CGROUPS_APPS_DIR, getuid(), getuid()
-
+        CGROUPS_USER_APPS_DIR, getuid(), getuid()
     );
     const char *app_dir;
     GList *apps = NULL;
@@ -59,16 +58,16 @@ GList *get_applications (void)
     return apps;
 }
 
-GList *get_subcgroups (const char *path)
+GList *get_cgroup_services (const char *path)
 {
     g_autoptr (GDir) sys_dir = NULL;
 
     const char *cgroup_dir;
-    GList *cgroups = NULL;
+    GList *services = NULL;
 
     sys_dir = g_dir_open (path, 0, NULL);
     if (sys_dir == NULL) {
-        g_warning ("Can't find cgroups user app slice: %s", path);
+        g_warning ("Can't find cgroup: %s", path);
         return NULL;
     }
 
@@ -85,9 +84,38 @@ GList *get_subcgroups (const char *path)
         if (!g_file_test (cgroup, G_FILE_TEST_EXISTS))
             continue;
 
-        cgroups = g_list_prepend (cgroups, g_strdup (cgroup));
+        services = g_list_prepend (services, g_strdup (cgroup));
     }
-    return cgroups;
+    return services;
+}
+
+GList*
+get_cgroup_slices (const char *path)
+{
+    g_autoptr (GDir) sys_dir = NULL;
+
+    const char *cgroup_dir;
+    GList *slices = NULL;
+
+    sys_dir = g_dir_open (path, 0, NULL);
+    if (sys_dir == NULL) {
+        g_warning ("Can't find cgroup: %s", path);
+        return NULL;
+    }
+
+    while ((cgroup_dir = g_dir_read_name (sys_dir)) != NULL) {
+        g_autofree char *slice = NULL;
+
+        if (!g_str_has_suffix (cgroup_dir, ".slice"))
+            continue;
+
+        slice = g_build_filename (
+            path, cgroup_dir, NULL
+        );
+
+        slices = g_list_prepend (slices, g_strdup (slice));
+    }
+    return slices;
 }
 
 GList*

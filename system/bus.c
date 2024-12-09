@@ -27,8 +27,7 @@ enum
     CPUSET_BLACKLIST_SETTED,
     CPUSET_TOPAPP_SETTED,
     LITTLE_CLUSTER_POWERSAVE_CHANGED,
-    CGROUPS_USER_SERVICES_DIR_SETTED,
-    CGROUPS_USER_APPS_DIR_SETTED,
+    CGROUPS_USER_DIR_SETTED,
     SUSPEND_MODEM_CHANGED,
     RADIO_POWER_SAVING_CHANGED,
     RADIO_POWER_SAVING_BLACKLIST_CHANGED,
@@ -195,17 +194,10 @@ handle_method_call (GDBusConnection       *connection,
                 0,
                 g_variant_get_boolean (value)
             );
-        } else if (g_strcmp0 (setting, "cgroups-user-services-dir") == 0) {
+        } else if (g_strcmp0 (setting, "cgroups-user-dir") == 0) {
             g_signal_emit(
                 self,
-                signals[CGROUPS_USER_SERVICES_DIR_SETTED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "cgroups-apps-dir") == 0) {
-            g_signal_emit(
-                self,
-                signals[CGROUPS_USER_APPS_DIR_SETTED],
+                signals[CGROUPS_USER_DIR_SETTED],
                 0,
                 g_steal_pointer (&value)
             );
@@ -530,19 +522,8 @@ bus_class_init (BusClass *klass)
         G_TYPE_VARIANT
     );
 
-    signals[CGROUPS_USER_SERVICES_DIR_SETTED] = g_signal_new (
-        "cgroups-user-services-dir-setted",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[CGROUPS_USER_APPS_DIR_SETTED] = g_signal_new (
-        "cgroups-user-apps-dir-setted",
+    signals[CGROUPS_USER_DIR_SETTED] = g_signal_new (
+        "cgroups-user-dir-setted",
         G_OBJECT_CLASS_TYPE (object_class),
         G_SIGNAL_RUN_LAST,
         0,
