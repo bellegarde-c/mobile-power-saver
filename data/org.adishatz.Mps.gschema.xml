@@ -69,9 +69,15 @@
     </key>
 
     <key name="cpuset-blacklist" type="as">
-      <default>['pipewire.service', 'audiosystem-passthrough.service', 'pulseaudio.service']</default>
-      <summary>Do not move thoses cgroups to background cpuset</summary>
-      <description>Those cgroups will not be moved to background cpuset.</description>
+      <default>['pipewire.service', 'audiosystem-passthrough.service', 'pulseaudio.service', 'mobile-power-saver.service']</default>
+      <summary>Do not move those cgroups to any cpuset</summary>
+      <description>Those cgroups will not be moved to any cpuset.</description>
+    </key>
+
+    <key name="cpuset-topapp" type="as">
+      <default>['sm.puri.Phosh.service']</default>
+      <summary>Move those cgroups to top-app cpuset</summary>
+      <description>Those cgroups will not be moved to top-app cpuset.</description>
     </key>
 
   </schema>

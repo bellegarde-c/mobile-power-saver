@@ -15,18 +15,11 @@
 #define MAX_BUFSZ (1024*64*2)
 #define PROCPATHLEN 64  // must hold /proc/2000222000/task/2000222000/cmdline
 
-static const char* CPUSET[] = {
-    "/dev/cpuset",
-    "/sys/fs/cgroup/cpuset"
-};
-
 struct _ProcessesPrivate {
     GList *processes;
 
     GList *cpuset_blacklist;
-
-    char *background_cpu_set;
-    char *system_background_cpu_set;
+    GList *cpuset_topapp;
 };
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -40,6 +33,22 @@ struct Process {
     pid_t pid;
     char *cmdline;
 };
+
+static const char*
+get_cpuset_path (CpuSet cpuset)
+{
+    switch (cpuset) {
+    case CPUSET_BACKGROUND:
+        return "/dev/cpuset/background/tasks";
+    case CPUSET_SYSTEM_BACKGROUND:
+        return "/dev/cpuset/system-background/tasks";
+    case CPUSET_FOREGROUND:
+        return "/dev/cpuset/foreground/tasks";
+    case CPUSET_TOPAPP:
+    default:
+        return "/dev/cpuset/top-app/tasks";
+    }
+}
 
 static void
 process_free (gpointer user_data)
@@ -121,7 +130,7 @@ get_processes (Processes *self)
 
     proc_dir = g_dir_open ("/proc", 0, NULL);
     if (proc_dir == NULL) {
-        g_warning ("/proc not mounted");
+        g_warning ("/proc not found");
         return NULL;
     }
 
@@ -160,11 +169,7 @@ processes_finalize (GObject *processes)
 
     g_list_free_full (self->priv->processes, process_free);
     g_list_free_full (self->priv->cpuset_blacklist, g_free);
-
-    if (self->priv->background_cpu_set != NULL)
-        g_free (self->priv->background_cpu_set);
-    if (self->priv->system_background_cpu_set != NULL)
-        g_free (self->priv->system_background_cpu_set);
+    g_list_free_full (self->priv->cpuset_topapp, g_free);
 
     G_OBJECT_CLASS (processes_parent_class)->finalize (processes);
 }
@@ -186,28 +191,7 @@ processes_init (Processes *self)
 
     self->priv->processes = NULL;
     self->priv->cpuset_blacklist = NULL;
-    self->priv->background_cpu_set = NULL;
-    self->priv->system_background_cpu_set = NULL;
-
-    for (size_t i = 0; i < sizeof(CPUSET) / sizeof(CPUSET[0]); i++) {
-        char *background = g_strdup_printf(
-            "%s/background/tasks", CPUSET[i]
-        );
-        char *system_background = g_strdup_printf(
-            "%s/system-background/tasks", CPUSET[i]
-        );
-
-        if (g_file_test (background, G_FILE_TEST_EXISTS)) {
-            self->priv->background_cpu_set = background;
-        } else {
-            g_free (background);
-        }
-        if (g_file_test (system_background, G_FILE_TEST_EXISTS)) {
-            self->priv->system_background_cpu_set = system_background;
-        } else {
-            g_free (system_background);
-        }
-    }
+    self->priv->cpuset_topapp = NULL;
 }
 
 /**
@@ -287,131 +271,84 @@ processes_resume (Processes *self,
 }
 
 /**
- * processes_names_set_background:
+ * processes_names_set_cpuset:
  *
- * Move processes to background cpuset
+ * Move processes to cpuset
  *
  * @param #Processes
  * @param names: processes list
+ * @param #CpuSet
  *
  */
-void  processes_names_set_background (Processes *self,
-                                      GList     *names) {
+void  processes_names_set_cpuset (Processes *self,
+                                  GList     *names,
+                                  CpuSet     cpuset) {
     struct Process *process;
+    const char *cpuset_path;
 
-    g_return_if_fail (self->priv->system_background_cpu_set != NULL);
-    g_return_if_fail (self->priv->background_cpu_set != NULL);
     g_return_if_fail (self->priv->processes != NULL);
+
+    cpuset_path = get_cpuset_path (cpuset);
 
     GFOREACH (self->priv->processes, process) {
         if (process_in_list (names, process)) {
             g_autofree char *pid_str = g_strdup_printf("%d", process->pid);
 
-            write_to_file (self->priv->background_cpu_set, pid_str);
+            write_to_file (cpuset_path, pid_str);
         }
     }
 }
 
 /**
- * processes_names_set_system_background:
- *
- * Move processes to system background cpuset
- *
- * @param #Processes
- * @param names: processes list
- *
- */
-void  processes_names_set_system_background (Processes *self,
-                                             GList     *names) {
-    struct Process *process;
-
-    g_return_if_fail (self->priv->system_background_cpu_set != NULL);
-    g_return_if_fail (self->priv->background_cpu_set != NULL);
-    g_return_if_fail (self->priv->processes != NULL);
-
-    GFOREACH (self->priv->processes, process) {
-        if (process_in_list (names, process)) {
-            g_autofree char *pid_str = g_strdup_printf("%d", process->pid);
-
-            write_to_file (self->priv->system_background_cpu_set, pid_str);
-        }
-    }
-}
-
-/**
- * processes_cgroups_set_background:
+ * processes_cgroups_set_cpuset:
  *
  * Move processes to background cpuset
  *
  * @param #Processes
  * @param cgrousp: cgroup list
+ * @param #CpuSet
  *
  */
-void  processes_cgroups_set_background (Processes *self,
-                                        GList     *cgroups) {
+void  processes_cgroups_set_cpuset (Processes *self,
+                                    GList     *cgroups,
+                                    CpuSet     cpuset) {
     const char *cgroup;
-
-    g_return_if_fail (self->priv->system_background_cpu_set != NULL);
-    g_return_if_fail (self->priv->background_cpu_set != NULL);
 
     GFOREACH (cgroups, cgroup) {
         GList *pids = NULL;
         pid_t *pid;
         const char *name;
+        const char *cpuset_path = NULL;
 
         GFOREACH_SUB (self->priv->cpuset_blacklist, name) {
             if (g_strrstr (cgroup, name) != NULL) {
                 goto end_loop;
             }
         }
+
+        if (cpuset == CPUSET_FOREGROUND) {
+            GFOREACH_SUB (self->priv->cpuset_topapp, name) {
+                if (g_strrstr (cgroup, name) != NULL) {
+                    cpuset_path = get_cpuset_path (CPUSET_TOPAPP);
+                    break;
+                }
+            }
+        }
+
+        if (cpuset_path == NULL)
+            cpuset_path = get_cpuset_path (cpuset);
 
         pids = get_cgroup_pids (cgroup);
         GFOREACH_SUB (pids, pid) {
             g_autofree char *pid_str = g_strdup_printf("%d", *pid);
 
-            write_to_file (self->priv->background_cpu_set, pid_str);
+            write_to_file (cpuset_path, pid_str);
         }
-end_loop:
         g_list_free_full (pids, g_free);
+end_loop:
     }
 }
 
-/**
- * processes_cgroups_set_system_background:
- *
- * Move processes to system background cpuset
- *
- * @param #Processes
- * @param cgrousp: cgroup list
- *
- */
-void  processes_cgroups_set_system_background (Processes *self,
-                                               GList     *cgroups) {
-    const char *cgroup;
-
-    g_return_if_fail (self->priv->system_background_cpu_set != NULL);
-    g_return_if_fail (self->priv->background_cpu_set != NULL);
-
-    GFOREACH (cgroups, cgroup) {
-        GList *pids = get_cgroup_pids (cgroup);
-        pid_t *pid;
-        const char *name;
-
-        GFOREACH_SUB (self->priv->cpuset_blacklist, name) {
-            if (g_strrstr (cgroup, name) != NULL) {
-                goto end_loop;
-            }
-        }
-
-        GFOREACH_SUB (pids, pid) {
-            g_autofree char *pid_str = g_strdup_printf("%d", *pid);
-
-            write_to_file (self->priv->system_background_cpu_set, pid_str);
-        }
-end_loop:
-        g_list_free_full (pids, g_free);
-    }
-}
 
 /**
  * processes_cpuset_set_blacklist:
@@ -429,4 +366,22 @@ processes_cpuset_set_blacklist (Processes *self,
     g_list_free_full (self->priv->cpuset_blacklist, g_free);
 
     self->priv->cpuset_blacklist = blacklist;
+}
+
+/**
+ * processes_cpuset_set_topapp:
+ *
+ * Set top-app cpuset
+ *
+ * @param #Processes
+ * @param blacklist: cgroup blacklist
+ *
+ */
+void
+processes_cpuset_set_topapp (Processes *self,
+                             GList     *topapp)
+{
+    g_list_free_full (self->priv->cpuset_topapp, g_free);
+
+    self->priv->cpuset_topapp = topapp;
 }

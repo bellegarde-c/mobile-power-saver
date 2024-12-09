@@ -25,4 +25,11 @@ typedef enum {
     BINDER_SERVICE_MANAGER_TYPE_HIDL
 } BinderServiceManagerType;
 
+typedef enum {
+    CPUSET_BACKGROUND,
+    CPUSET_SYSTEM_BACKGROUND,
+    CPUSET_FOREGROUND,
+    CPUSET_TOPAPP
+} CpuSet ;
+
 #endif

@@ -25,6 +25,7 @@ enum
     SCREEN_STATE_CHANGED,
     DEVFREQ_BLACKLIST_SETTED,
     CPUSET_BLACKLIST_SETTED,
+    CPUSET_TOPAPP_SETTED,
     LITTLE_CLUSTER_POWERSAVE_CHANGED,
     CGROUPS_USER_SERVICES_DIR_SETTED,
     CGROUPS_USER_APPS_DIR_SETTED,
@@ -177,6 +178,13 @@ handle_method_call (GDBusConnection       *connection,
             g_signal_emit(
                 self,
                 signals[CPUSET_BLACKLIST_SETTED],
+                0,
+                g_steal_pointer (&value)
+            );
+        } else if (g_strcmp0 (setting, "cpuset-topapp") == 0) {
+            g_signal_emit(
+                self,
+                signals[CPUSET_TOPAPP_SETTED],
                 0,
                 g_steal_pointer (&value)
             );
@@ -502,6 +510,17 @@ bus_class_init (BusClass *klass)
 
     signals[CPUSET_BLACKLIST_SETTED] = g_signal_new (
         "cpuset-blacklist-setted",
+        G_OBJECT_CLASS_TYPE (object_class),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL, NULL,
+        G_TYPE_NONE,
+        1,
+        G_TYPE_VARIANT
+    );
+
+    signals[CPUSET_TOPAPP_SETTED] = g_signal_new (
+        "cpuset-topapp-setted",
         G_OBJECT_CLASS_TYPE (object_class),
         G_SIGNAL_RUN_LAST,
         0,
