@@ -20,4 +20,11 @@ typedef enum {
     POWER_PROFILE_LAST
 } PowerProfile;
 
+typedef enum {
+    CPUSET_BACKGROUND,
+    CPUSET_SYSTEM_BACKGROUND,
+    CPUSET_FOREGROUND,
+    CPUSET_TOPAPP
+} CpuSet ;
+
 #endif

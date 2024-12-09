@@ -88,21 +88,25 @@ on_screen_state_changed (gpointer ignore,
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
-            processes_names_set_system_background (
+            processes_names_set_cpuset (
                 self->priv->processes,
-                self->priv->screen_off_background_processes
+                self->priv->screen_off_background_processes,
+                CPUSET_SYSTEM_BACKGROUND
             );
-            processes_cgroups_set_system_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                system_cgroups
+                system_cgroups,
+                CPUSET_SYSTEM_BACKGROUND
             );
-            processes_cgroups_set_system_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                user_cgroups
+                user_cgroups,
+                CPUSET_FOREGROUND
             );
-            processes_cgroups_set_system_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                apps_cgroups
+                apps_cgroups,
+                CPUSET_FOREGROUND
             );
             services_unfreeze (
                 self->priv->services,
@@ -115,21 +119,25 @@ on_screen_state_changed (gpointer ignore,
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
-            processes_names_set_background (
+            processes_names_set_cpuset (
                 self->priv->processes,
-                self->priv->screen_off_background_processes
+                self->priv->screen_off_background_processes,
+                CPUSET_BACKGROUND
             );
-            processes_cgroups_set_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                system_cgroups
+                system_cgroups,
+                CPUSET_BACKGROUND
             );
-            processes_cgroups_set_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                user_cgroups
+                user_cgroups,
+                CPUSET_BACKGROUND
             );
-            processes_cgroups_set_background (
+            processes_cgroups_set_cpuset (
                 self->priv->processes,
-                apps_cgroups
+                apps_cgroups,
+                CPUSET_BACKGROUND
             );
             services_freeze (
                 self->priv->services,
@@ -249,6 +257,26 @@ on_cpuset_blacklist_setted (Bus      *bus,
     }
 
     processes_cpuset_set_blacklist (self->priv->processes, blacklist);
+
+    g_variant_unref (value);
+}
+
+static void
+on_cpuset_topapp_setted (Bus      *bus,
+                            GVariant *value,
+                            gpointer  user_data)
+{
+    Manager *self = MANAGER (user_data);
+    GList *topapp = NULL;
+    g_autoptr (GVariantIter) iter;
+    const char *item;
+
+    g_variant_get (value, "as", &iter);
+    while (g_variant_iter_loop (iter, "s", &item)) {
+        topapp = g_list_append (topapp, g_strdup (item));
+    }
+
+    processes_cpuset_set_topapp (self->priv->processes, topapp);
 
     g_variant_unref (value);
 }
@@ -448,6 +476,12 @@ manager_init (Manager *self)
         bus_get_default (),
         "cpuset-blacklist-setted",
         G_CALLBACK (on_cpuset_blacklist_setted),
+        self
+    );
+    g_signal_connect (
+        bus_get_default (),
+        "cpuset-topapp-setted",
+        G_CALLBACK (on_cpuset_topapp_setted),
         self
     );
     g_signal_connect (
