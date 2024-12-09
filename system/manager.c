@@ -63,7 +63,7 @@ get_governor_from_power_profile (PowerProfile power_profile) {
 }
 
 static void
-on_screen_state_changed (gpointer ignore,
+on_screen_state_changed (Logind logind,
                          gboolean screen_on,
                          gpointer user_data)
 {
