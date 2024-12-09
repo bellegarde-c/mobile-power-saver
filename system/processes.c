@@ -233,18 +233,18 @@ processes_update (Processes *self) {
  * Suspend processes in list
  *
  * @param #Processes
- * @param names: processes list
+ * @param processes: processes list
  */
 void
 processes_suspend (Processes *self,
-                   GList     *names) {
+                   GList     *processes) {
 
     struct Process *process;
 
     g_return_if_fail (self->priv->processes != NULL);
 
     GFOREACH (self->priv->processes, process)
-        if (process_in_list (names, process))
+        if (process_in_list (processes, process))
             kill (process->pid, SIGSTOP);
 }
 
@@ -254,19 +254,19 @@ processes_suspend (Processes *self,
  * resume processes
  *
  * @param #Processes
- * @param names: processes list
+ * @param processes: processes list
  *
  */
 void
 processes_resume (Processes *self,
-                  GList     *names) {
+                  GList     *processes) {
 
     struct Process *process;
 
     g_return_if_fail (self->priv->processes != NULL);
 
     GFOREACH (self->priv->processes, process)
-        if (process_in_list (names, process))
+        if (process_in_list (processes, process))
             kill (process->pid, SIGCONT);
 }
 
