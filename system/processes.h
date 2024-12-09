@@ -50,10 +50,10 @@ void            processes_suspend                      (Processes *self,
                                                         GList     *names);
 void            processes_resume                       (Processes *self,
                                                         GList     *names);
-void            processes_names_set_cpuset             (Processes *self,
+void            processes_set_cpuset                   (Processes *self,
                                                         GList     *names,
                                                         CpuSet     cpuset);
-void            processes_cgroups_set_cpuset           (Processes *self,
+void            processes_set_services_cpuset          (Processes *self,
                                                         GList     *cgroups,
                                                         CpuSet     cpuset);
 void            processes_cpuset_set_blacklist         (Processes *self,

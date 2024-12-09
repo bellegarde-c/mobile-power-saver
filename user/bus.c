@@ -95,10 +95,7 @@ static void
 bus_init (Bus *self)
 {
     g_autofree char *cgroups_user_services_dir = g_strdup_printf(
-        CGROUPS_USER_SERVICES_DIR, getuid(), getuid()
-    );
-    g_autofree char *cgroups_apps_dir = g_strdup_printf(
-        CGROUPS_APPS_DIR, getuid(), getuid()
+        CGROUPS_USER_DIR, getuid(), getuid()
     );
 
     self->priv = bus_get_instance_private (self);
@@ -123,13 +120,8 @@ bus_init (Bus *self)
 
     bus_set_value (
         self,
-        "cgroups-user-services-dir",
+        "cgroups-user-dir",
         g_variant_new ("s", cgroups_user_services_dir)
-    );
-    bus_set_value (
-        self,
-        "cgroups-apps-dir",
-        g_variant_new ("s", cgroups_apps_dir)
     );
 }
 

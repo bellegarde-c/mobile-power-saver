@@ -41,8 +41,7 @@ struct _ManagerPrivate {
     GList *screen_off_background_processes;
     GList *screen_off_suspend_services;
 
-    char *cgroups_user_services_dir;
-    char *cgroups_user_apps_dir;
+    char *cgroups_user_dir;
 
     gboolean radio_power_saving;
 };
@@ -69,9 +68,16 @@ on_screen_state_changed (gpointer ignore,
                          gpointer user_data)
 {
     Manager *self = MANAGER (user_data);
-    GList *system_cgroups = get_subcgroups (CGROUPS_SYSTEM_SERVICES_DIR);
-    GList *user_cgroups = get_subcgroups (self->priv->cgroups_user_services_dir);
-    GList *apps_cgroups = get_subcgroups (self->priv->cgroups_user_apps_dir);
+    GList *system_services = get_cgroup_services (CGROUPS_SYSTEM_SERVICES_DIR);
+    GList *user_slices = get_cgroup_slices (self->priv->cgroups_user_dir);
+    GList *user_services = NULL;
+    const char *slice;
+
+    GFOREACH (user_slices, slice) {
+        GList *services = get_cgroup_services (slice);
+
+        user_services = g_list_concat (user_services, services);
+    }
 
     if (self->priv->screen_off_power_saving) {
         bus_screen_state_changed (bus_get_default (), screen_on);
@@ -88,24 +94,19 @@ on_screen_state_changed (gpointer ignore,
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
-            processes_names_set_cpuset (
+            processes_set_cpuset (
                 self->priv->processes,
                 self->priv->screen_off_background_processes,
                 CPUSET_SYSTEM_BACKGROUND
             );
-            processes_cgroups_set_cpuset (
+            processes_set_services_cpuset (
                 self->priv->processes,
-                system_cgroups,
+                system_services,
                 CPUSET_SYSTEM_BACKGROUND
             );
-            processes_cgroups_set_cpuset (
+            processes_set_services_cpuset (
                 self->priv->processes,
-                user_cgroups,
-                CPUSET_FOREGROUND
-            );
-            processes_cgroups_set_cpuset (
-                self->priv->processes,
-                apps_cgroups,
+                user_services,
                 CPUSET_FOREGROUND
             );
             services_unfreeze (
@@ -119,24 +120,19 @@ on_screen_state_changed (gpointer ignore,
                 self->priv->processes,
                 self->priv->screen_off_suspend_processes
             );
-            processes_names_set_cpuset (
+            processes_set_cpuset (
                 self->priv->processes,
                 self->priv->screen_off_background_processes,
                 CPUSET_BACKGROUND
             );
-            processes_cgroups_set_cpuset (
+            processes_set_services_cpuset (
                 self->priv->processes,
-                system_cgroups,
+                system_services,
                 CPUSET_BACKGROUND
             );
-            processes_cgroups_set_cpuset (
+            processes_set_services_cpuset (
                 self->priv->processes,
-                user_cgroups,
-                CPUSET_BACKGROUND
-            );
-            processes_cgroups_set_cpuset (
-                self->priv->processes,
-                apps_cgroups,
+                user_services,
                 CPUSET_BACKGROUND
             );
             services_freeze (
@@ -146,8 +142,9 @@ on_screen_state_changed (gpointer ignore,
         }
     }
 
-    g_list_free_full (system_cgroups, g_free);
-    g_list_free_full (user_cgroups, g_free);
+    g_list_free_full (system_services, g_free);
+    g_list_free_full (user_slices, g_free);
+    g_list_free_full (user_services, g_free);
 }
 
 static void
@@ -282,31 +279,17 @@ on_cpuset_topapp_setted (Bus      *bus,
 }
 
 static void
-on_cgroups_user_services_dir_setted (Bus      *bus,
-                                     GVariant *value,
-                                     gpointer  user_data)
+on_cgroups_user_dir_setted (Bus      *bus,
+                            GVariant *value,
+                            gpointer  user_data)
 {
     Manager *self = MANAGER (user_data);
 
-    if (self->priv->cgroups_user_services_dir != NULL) {
-        g_free (self->priv->cgroups_user_services_dir);
+    if (self->priv->cgroups_user_dir != NULL) {
+        g_free (self->priv->cgroups_user_dir);
     }
 
-    g_variant_get (value, "s", &self->priv->cgroups_user_services_dir);
-}
-
-static void
-on_cgroups_user_apps_dir_setted (Bus      *bus,
-                                 GVariant *value,
-                                 gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-
-    if (self->priv->cgroups_user_apps_dir != NULL) {
-        g_free (self->priv->cgroups_user_apps_dir);
-    }
-
-    g_variant_get (value, "s", &self->priv->cgroups_user_apps_dir);
+    g_variant_get (value, "s", &self->priv->cgroups_user_dir);
 }
 
 static void
@@ -387,12 +370,8 @@ manager_finalize (GObject *manager)
         self->priv->screen_off_suspend_services, g_free
     );
 
-    if (self->priv->cgroups_user_services_dir != NULL) {
-        g_free (self->priv->cgroups_user_services_dir);
-    }
-
-    if (self->priv->cgroups_user_apps_dir != NULL) {
-        g_free (self->priv->cgroups_user_apps_dir);
+    if (self->priv->cgroups_user_dir != NULL) {
+        g_free (self->priv->cgroups_user_dir);
     }
 
     G_OBJECT_CLASS (manager_parent_class)->finalize (manager);
@@ -425,8 +404,7 @@ manager_init (Manager *self)
     self->priv->screen_off_power_saving = TRUE;
     self->priv->radio_power_saving = FALSE;
     self->priv->screen_off_suspend_processes = NULL;
-    self->priv->cgroups_user_services_dir = NULL;
-    self->priv->cgroups_user_apps_dir = NULL;
+    self->priv->cgroups_user_dir = NULL;
 
     g_signal_connect (
         logind_get_default (),
@@ -486,14 +464,8 @@ manager_init (Manager *self)
     );
     g_signal_connect (
         bus_get_default (),
-        "cgroups-user-services-dir-setted",
-        G_CALLBACK (on_cgroups_user_services_dir_setted),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "cgroups-user-apps-dir-setted",
-        G_CALLBACK (on_cgroups_user_apps_dir_setted),
+        "cgroups-user-dir-setted",
+        G_CALLBACK (on_cgroups_user_dir_setted),
         self
     );
     g_signal_connect (
