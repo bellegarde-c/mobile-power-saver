@@ -17,20 +17,8 @@
 /* signals */
 enum
 {
-    POWER_SAVING_MODE_CHANGED,
     SCREEN_OFF_POWER_SAVING_CHANGED,
-    SCREEN_OFF_SUSPEND_PROCESSES_CHANGED,
-    SCREEN_OFF_SUSPEND_SERVICES_CHANGED,
-    SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED,
-    SCREEN_STATE_CHANGED,
-    DEVFREQ_BLACKLIST_SETTED,
-    CPUSET_BLACKLIST_SETTED,
-    CPUSET_TOPAPP_SETTED,
-    LITTLE_CLUSTER_POWERSAVE_CHANGED,
-    CGROUPS_USER_DIR_SETTED,
-    SUSPEND_MODEM_CHANGED,
-    RADIO_POWER_SAVING_CHANGED,
-    RADIO_POWER_SAVING_BLACKLIST_CHANGED,
+    BUS_SETTING_CHANGED,
     LAST_SIGNAL
 };
 
@@ -145,82 +133,12 @@ handle_method_call (GDBusConnection       *connection,
                 0,
                 g_variant_get_boolean (value)
             );
-        } else if (g_strcmp0 (setting, "screen-off-suspend-processes") == 0) {
+        } else {
             g_signal_emit(
                 self,
-                signals[SCREEN_OFF_SUSPEND_PROCESSES_CHANGED],
+                signals[BUS_SETTING_CHANGED],
                 0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "screen-off-background-processes") == 0) {
-            g_signal_emit(
-                self,
-                signals[SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "screen-off-suspend-system-services") == 0) {
-            g_signal_emit(
-                self,
-                signals[SCREEN_OFF_SUSPEND_SERVICES_CHANGED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "devfreq-blacklist") == 0) {
-            g_signal_emit(
-                self,
-                signals[DEVFREQ_BLACKLIST_SETTED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "cpuset-blacklist") == 0) {
-            g_signal_emit(
-                self,
-                signals[CPUSET_BLACKLIST_SETTED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "cpuset-topapp") == 0) {
-            g_signal_emit(
-                self,
-                signals[CPUSET_TOPAPP_SETTED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "little-cluster-powersave") == 0) {
-            g_signal_emit(
-                self,
-                signals[LITTLE_CLUSTER_POWERSAVE_CHANGED],
-                0,
-                g_variant_get_boolean (value)
-            );
-        } else if (g_strcmp0 (setting, "cgroups-user-dir") == 0) {
-            g_signal_emit(
-                self,
-                signals[CGROUPS_USER_DIR_SETTED],
-                0,
-                g_steal_pointer (&value)
-            );
-        } else if (g_strcmp0 (setting, "suspend-modem") == 0) {
-            g_signal_emit(
-                self,
-                signals[SUSPEND_MODEM_CHANGED],
-                0,
-                g_variant_get_boolean (value)
-            );
-        } else if (g_strcmp0 (setting, "radio-power-saving") == 0) {
-            g_signal_emit(
-                self,
-                signals[RADIO_POWER_SAVING_CHANGED],
-                0,
-                g_variant_get_boolean (value)
-            );
-        } else if (g_strcmp0 (setting, "radio-power-saving-blacklist") == 0) {
-            g_signal_emit(
-                self,
-                signals[RADIO_POWER_SAVING_BLACKLIST_CHANGED],
-                0,
-                g_variant_get_int32 (value)
+                g_variant_new ("(&sv)", setting, g_steal_pointer (&value))
             );
         }
 
@@ -277,12 +195,7 @@ handle_set_property (GDBusConnection  *connection,
             power_profile
         );
 
-        g_signal_emit(
-            self,
-            signals[POWER_SAVING_MODE_CHANGED],
-            0,
-            self->priv->power_profile
-        );
+
         return TRUE;
     } else {
         g_set_error (error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
@@ -434,17 +347,6 @@ bus_class_init (BusClass *klass)
     object_class->dispose = bus_dispose;
     object_class->finalize = bus_finalize;
 
-    signals[POWER_SAVING_MODE_CHANGED] = g_signal_new (
-        "power-saving-mode-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_INT
-    );
-
     signals[SCREEN_OFF_POWER_SAVING_CHANGED] = g_signal_new (
         "screen-off-power-saving-changed",
         G_OBJECT_CLASS_TYPE (object_class),
@@ -456,8 +358,9 @@ bus_class_init (BusClass *klass)
         G_TYPE_BOOLEAN
     );
 
-    signals[SCREEN_OFF_SUSPEND_PROCESSES_CHANGED] = g_signal_new (
-        "screen-off-suspend-processes-changed",
+
+    signals[BUS_SETTING_CHANGED] = g_signal_new (
+        "bus-setting-changed",
         G_OBJECT_CLASS_TYPE (object_class),
         G_SIGNAL_RUN_LAST,
         0,
@@ -465,116 +368,6 @@ bus_class_init (BusClass *klass)
         G_TYPE_NONE,
         1,
         G_TYPE_VARIANT
-    );
-
-    signals[SCREEN_OFF_BACKGROUND_PROCESSES_CHANGED] = g_signal_new (
-        "screen-off-background-processes-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[SCREEN_OFF_SUSPEND_SERVICES_CHANGED] = g_signal_new (
-        "screen-off-suspend-services-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[DEVFREQ_BLACKLIST_SETTED] = g_signal_new (
-        "devfreq-blacklist-setted",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[CPUSET_BLACKLIST_SETTED] = g_signal_new (
-        "cpuset-blacklist-setted",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[CPUSET_TOPAPP_SETTED] = g_signal_new (
-        "cpuset-topapp-setted",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[CGROUPS_USER_DIR_SETTED] = g_signal_new (
-        "cgroups-user-dir-setted",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_VARIANT
-    );
-
-    signals[LITTLE_CLUSTER_POWERSAVE_CHANGED] = g_signal_new (
-        "little-cluster-powersave-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_BOOLEAN
-    );
-
-    signals[SUSPEND_MODEM_CHANGED] = g_signal_new (
-        "suspend-modem-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_BOOLEAN
-    );
-
-    signals[RADIO_POWER_SAVING_CHANGED] = g_signal_new (
-        "radio-power-saving-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_BOOLEAN
-    );
-
-    signals[RADIO_POWER_SAVING_BLACKLIST_CHANGED] = g_signal_new (
-        "radio-power-saving-blacklist-changed",
-        G_OBJECT_CLASS_TYPE (object_class),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL, NULL,
-        G_TYPE_NONE,
-        1,
-        G_TYPE_INT
     );
 }
 

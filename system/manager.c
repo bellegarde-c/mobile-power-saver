@@ -39,7 +39,7 @@ struct _ManagerPrivate {
     gboolean screen_off_power_saving;
     GList *screen_off_suspend_processes;
     GList *screen_off_background_processes;
-    GList *screen_off_suspend_services;
+    GList *screen_off_suspend_system_services;
 
     char *cgroups_user_dir;
 
@@ -111,7 +111,7 @@ on_screen_state_changed (Logind logind,
             );
             services_unfreeze (
                 self->priv->services,
-                self->priv->screen_off_suspend_services
+                self->priv->screen_off_suspend_system_services
             );
         } else {
             cpufreq_set_powersave (self->priv->cpufreq, TRUE, FALSE);
@@ -137,7 +137,7 @@ on_screen_state_changed (Logind logind,
             );
             services_freeze (
                 self->priv->services,
-                self->priv->screen_off_suspend_services
+                self->priv->screen_off_suspend_system_services
             );
         }
     }
@@ -148,11 +148,9 @@ on_screen_state_changed (Logind logind,
 }
 
 static void
-on_power_saving_mode_changed (Bus         *bus,
-                              PowerProfile power_profile,
-                              gpointer     user_data)
+set_power_profile (Manager      *self,
+                   PowerProfile  power_profile)
 {
-    Manager *self = MANAGER (user_data);
     const char *governor = get_governor_from_power_profile (power_profile);
 
     cpufreq_set_governor (self->priv->cpufreq, governor);
@@ -160,188 +158,86 @@ on_power_saving_mode_changed (Bus         *bus,
 }
 
 static void
-on_screen_off_power_saving_changed (Bus      *bus,
-                                    gboolean  screen_off_power_saving,
-                                    gpointer  user_data)
+set_cgroups_user_dir (Manager  *self,
+                      GVariant *value)
 {
-    Manager *self = MANAGER (user_data);
-
-    self->priv->screen_off_power_saving = screen_off_power_saving;
-
-    if (!self->priv->screen_off_power_saving) {
-        cpufreq_set_powersave (self->priv->cpufreq, FALSE, TRUE);
-        devfreq_set_powersave (self->priv->devfreq, FALSE);
-    }
-}
-
-static void
-on_screen_off_suspend_processes_changed (Bus      *bus,
-                                         GVariant *value,
-                                         gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    g_autoptr (GVariantIter) iter;
-    const char *process;
-
-    g_list_free_full (
-        self->priv->screen_off_suspend_processes, g_free
-    );
-    self->priv->screen_off_suspend_processes = NULL;
-
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &process)) {
-        self->priv->screen_off_suspend_processes =
-            g_list_append (
-                self->priv->screen_off_suspend_processes, g_strdup (process)
-            );
-    }
-
-    g_variant_unref (value);
-}
-
-static void
-on_screen_off_background_processes_changed (Bus      *bus,
-                                            GVariant *value,
-                                            gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    g_autoptr (GVariantIter) iter;
-    const char *process;
-
-    g_list_free_full (
-        self->priv->screen_off_background_processes, g_free
-    );
-    self->priv->screen_off_background_processes = NULL;
-
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &process)) {
-        self->priv->screen_off_background_processes =
-            g_list_append (
-                self->priv->screen_off_background_processes, g_strdup (process)
-            );
-    }
-
-    g_variant_unref (value);
-}
-
-static void
-on_devfreq_blacklist_setted (Bus      *bus,
-                             GVariant *value,
-                             gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    g_autoptr (GVariantIter) iter;
-    const char *device;
-
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &device)) {
-        devfreq_blacklist (self->priv->devfreq, device);
-    }
-
-    g_variant_unref (value);
-}
-
-static void
-on_cpuset_blacklist_setted (Bus      *bus,
-                            GVariant *value,
-                            gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    GList *blacklist = NULL;
-    g_autoptr (GVariantIter) iter;
-    const char *item;
-
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &item)) {
-        blacklist = g_list_append (blacklist, g_strdup (item));
-    }
-
-    processes_cpuset_set_blacklist (self->priv->processes, blacklist);
-
-    g_variant_unref (value);
-}
-
-static void
-on_cpuset_topapp_setted (Bus      *bus,
-                         GVariant *value,
-                         gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    GList *topapp = NULL;
-    g_autoptr (GVariantIter) iter;
-    const char *item;
-
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &item)) {
-        topapp = g_list_append (topapp, g_strdup (item));
-    }
-
-    processes_cpuset_set_topapp (self->priv->processes, topapp);
-
-    g_variant_unref (value);
-}
-
-static void
-on_cgroups_user_dir_setted (Bus      *bus,
-                            GVariant *value,
-                            gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-
     if (self->priv->cgroups_user_dir != NULL) {
         g_free (self->priv->cgroups_user_dir);
     }
 
     g_variant_get (value, "s", &self->priv->cgroups_user_dir);
-
-    g_variant_unref (value);
 }
 
 static void
-on_radio_power_saving_changed (Bus      *bus,
-                               gboolean  radio_power_saving,
-                               gpointer  user_data)
+on_bus_setting_changed (Bus      *bus,
+                        GVariant *value,
+                        gpointer  user_data)
 {
     Manager *self = MANAGER (user_data);
+    const char *setting = NULL;
+    g_autoptr (GVariant) inner_value = NULL;
 
-    self->priv->radio_power_saving = radio_power_saving;
-}
+    g_variant_get (value, "(&sv)", &setting, &inner_value);
 
-static void
-on_little_cluster_powersave_changed (Bus      *bus,
-                                     gboolean  enabled,
-                                     gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
+    if (g_strcmp0 (setting, "power-saving-mode") == 0) {
+        gint power_profile = g_variant_get_int32 (inner_value);
+        set_power_profile (self, power_profile);
+    } else if (g_strcmp0 (setting, "screen-off-power-saving") == 0) {
+        self->priv->screen_off_power_saving = g_variant_get_boolean (inner_value);
 
-    cpufreq_set_powersave (self->priv->cpufreq, TRUE, enabled);
-}
+        if (!self->priv->screen_off_power_saving) {
+            cpufreq_set_powersave (self->priv->cpufreq, FALSE, TRUE);
+            devfreq_set_powersave (self->priv->devfreq, FALSE);
+        }
+    } else if (g_strcmp0 (setting, "screen-off-suspend-processes") == 0) {
+        g_list_free_full (
+            self->priv->screen_off_suspend_processes, g_free
+        );
+        self->priv->screen_off_suspend_processes = get_list_from_variant (
+            inner_value
+        );
+    } else if (g_strcmp0 (setting, "screen-off-background-processes") == 0) {
+        g_list_free_full (
+            self->priv->screen_off_background_processes, g_free
+        );
+        self->priv->screen_off_background_processes = get_list_from_variant (
+            inner_value
+        );
+    } else if (g_strcmp0 (setting, "screen-off-suspend-system-services") == 0) {
+        g_list_free_full (
+            self->priv->screen_off_suspend_system_services, g_free
+        );
+        self->priv->screen_off_suspend_system_services = get_list_from_variant (
+            inner_value
+        );
+    } else if (g_strcmp0 (setting, "devfreq-blacklist") == 0) {
+        GList *list = get_list_from_variant (inner_value);
+        const char *device;
 
+        GFOREACH (list, device) {
+            devfreq_blacklist (self->priv->devfreq, device);
+        }
 
-static void
-on_screen_off_suspend_services_changed (Bus      *bus,
-                                        GVariant *value,
-                                        gpointer  user_data)
-{
-    Manager *self = MANAGER (user_data);
-    g_autoptr (GVariantIter) iter;
-    char *service;
+        g_list_free_full (list, g_free);
+    } else if (g_strcmp0 (setting, "cpuset-blacklist") == 0) {
+        GList *list = get_list_from_variant (inner_value);
 
-    g_list_free_full (
-        self->priv->screen_off_suspend_services,
-        g_free
-    );
-    self->priv->screen_off_suspend_services = NULL;
+        processes_cpuset_set_blacklist (self->priv->processes, list);
+    } else if (g_strcmp0 (setting, "cpuset-topapp") == 0) {
+        GList *list = get_list_from_variant (inner_value);
 
-    g_variant_get (value, "as", &iter);
-    while (g_variant_iter_loop (iter, "s", &service)) {
-        self->priv->screen_off_suspend_services =
-            g_list_append (
-                self->priv->screen_off_suspend_services, g_strdup (service)
-            );
+        processes_cpuset_set_topapp (self->priv->processes, list);
+    } else if (g_strcmp0 (setting, "cgroups-user-dir") == 0) {
+        set_cgroups_user_dir (self, inner_value);
+    } else if (g_strcmp0 (setting, "little-cluster-powersave") == 0) {
+        gboolean enabled = g_variant_get_boolean (inner_value);
+
+        cpufreq_set_powersave (self->priv->cpufreq, TRUE, enabled);
+    } else if (g_strcmp0 (setting, "radio-power-saving") == 0) {
+        gboolean radio_power_saving = g_variant_get_boolean (inner_value);
+
+        self->priv->radio_power_saving = radio_power_saving;
     }
-
-    g_variant_unref (value);
 }
 
 static void
@@ -373,7 +269,7 @@ manager_finalize (GObject *manager)
         self->priv->screen_off_background_processes, g_free
     );
     g_list_free_full (
-        self->priv->screen_off_suspend_services, g_free
+        self->priv->screen_off_suspend_system_services, g_free
     );
 
     if (self->priv->cgroups_user_dir != NULL) {
@@ -421,68 +317,8 @@ manager_init (Manager *self)
 
     g_signal_connect (
         bus_get_default (),
-        "power-saving-mode-changed",
-        G_CALLBACK (on_power_saving_mode_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "screen-off-power-saving-changed",
-        G_CALLBACK (on_screen_off_power_saving_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "screen-off-suspend-processes-changed",
-        G_CALLBACK (on_screen_off_suspend_processes_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "screen-off-background-processes-changed",
-        G_CALLBACK (on_screen_off_background_processes_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "screen-off-suspend-services-changed",
-        G_CALLBACK (on_screen_off_suspend_services_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "devfreq-blacklist-setted",
-        G_CALLBACK (on_devfreq_blacklist_setted),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "cpuset-blacklist-setted",
-        G_CALLBACK (on_cpuset_blacklist_setted),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "cpuset-topapp-setted",
-        G_CALLBACK (on_cpuset_topapp_setted),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "cgroups-user-dir-setted",
-        G_CALLBACK (on_cgroups_user_dir_setted),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "little-cluster-powersave-changed",
-        G_CALLBACK (on_little_cluster_powersave_changed),
-        self
-    );
-    g_signal_connect (
-        bus_get_default (),
-        "radio-power-saving-changed",
-        G_CALLBACK (on_radio_power_saving_changed),
+        "bus-setting-changed",
+        G_CALLBACK (on_bus_setting_changed),
         self
     );
 }

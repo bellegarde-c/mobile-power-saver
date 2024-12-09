@@ -139,3 +139,18 @@ get_cgroup_pids (const char *path)
 
     return pids;
 }
+
+GList*
+get_list_from_variant (GVariant *value)
+{
+    GList *list = NULL;
+    g_autoptr (GVariantIter) iter;
+    const char *item;
+
+    g_variant_get (value, "as", &iter);
+    while (g_variant_iter_loop (iter, "s", &item)) {
+        list = g_list_append (list, g_strdup (item));
+    }
+
+    return list;
+}
