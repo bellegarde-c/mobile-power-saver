@@ -27,7 +27,7 @@
     </key>
 
     <key name="screen-off-background-processes" type="as">
-      <default>['qcrild', 'hwservicemanager', 'shsusrd', 'android.hardware.health']</default>
+      <default>['qcrild', 'hwservicemanager', 'shsusrd', 'android.hardware.health', 'cas@1', 'drm@1', 'drmserver', 'keystore', 'omx@1', 'mediaswcodec']</default>
       <summary>Move these processes to background cpuset when screen is off</summary>
       <description>When screen is turned off, processes in list are moved to background cpuset.</description>
     </key>
