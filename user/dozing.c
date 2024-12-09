@@ -125,10 +125,7 @@ freeze_apps (Dozing *self)
 static gboolean
 unfreeze_apps (Dozing *self)
 {
-    Bus *bus = bus_get_default ();
     const char *app;
-
-    bus_set_value (bus, "suspend-modem", g_variant_new ("b", FALSE));
 
     if (self->priv->apps == NULL)
         return FALSE;
@@ -227,7 +224,6 @@ dozing_start (Dozing  *self) {
  */
 void
 dozing_stop (Dozing  *self) {
-    Bus *bus = bus_get_default ();
     const char *app;
 
     g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
@@ -235,8 +231,6 @@ dozing_stop (Dozing  *self) {
     g_message("Unfreezing apps");
     GFOREACH (self->priv->apps, app)
         write_to_file (app, "0");
-
-    bus_set_value (bus, "suspend-modem", g_variant_new ("b", FALSE));
 
     g_list_free_full (self->priv->apps, g_free);
     self->priv->apps = NULL;
