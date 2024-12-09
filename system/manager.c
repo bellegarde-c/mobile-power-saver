@@ -210,6 +210,7 @@ on_screen_off_suspend_processes_changed (Bus      *bus,
                 self->priv->screen_off_suspend_processes, g_strdup (process)
             );
     }
+
     g_variant_unref (value);
 }
 
@@ -234,6 +235,7 @@ on_screen_off_background_processes_changed (Bus      *bus,
                 self->priv->screen_off_background_processes, g_strdup (process)
             );
     }
+
     g_variant_unref (value);
 }
 
@@ -250,6 +252,7 @@ on_devfreq_blacklist_setted (Bus      *bus,
     while (g_variant_iter_loop (iter, "s", &device)) {
         devfreq_blacklist (self->priv->devfreq, device);
     }
+
     g_variant_unref (value);
 }
 
@@ -275,8 +278,8 @@ on_cpuset_blacklist_setted (Bus      *bus,
 
 static void
 on_cpuset_topapp_setted (Bus      *bus,
-                            GVariant *value,
-                            gpointer  user_data)
+                         GVariant *value,
+                         gpointer  user_data)
 {
     Manager *self = MANAGER (user_data);
     GList *topapp = NULL;
@@ -305,6 +308,8 @@ on_cgroups_user_dir_setted (Bus      *bus,
     }
 
     g_variant_get (value, "s", &self->priv->cgroups_user_dir);
+
+    g_variant_unref (value);
 }
 
 static void
@@ -350,6 +355,7 @@ on_screen_off_suspend_services_changed (Bus      *bus,
                 self->priv->screen_off_suspend_services, g_strdup (service)
             );
     }
+
     g_variant_unref (value);
 }
 
@@ -440,7 +446,6 @@ manager_init (Manager *self)
         G_CALLBACK (on_power_saving_mode_changed),
         self
     );
-
     g_signal_connect (
         bus_get_default (),
         "screen-off-power-saving-changed",
