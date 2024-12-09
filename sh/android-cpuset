@@ -20,4 +20,14 @@ do
     echo 0-7 > /dev/cpuset/$i/cpus
 done
 
+# Not really related to CPUSET but since we are certain this runs only on Android device...
+# We do not need wakeup sources as the system never sleeps, only idles.
+find /sys/devices -name wakeup | while read file
+do
+	if echo $file | grep -q 'power/wakeup'
+	then
+		echo disabled > $file
+	fi
+done
+
 exit 0
