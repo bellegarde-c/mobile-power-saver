@@ -8,76 +8,88 @@
       <description>When screen is turned off, try to save as much power as possible.</description>
     </key>
 
-    <key name="screen-off-bluetooth-power-saving" type="b">
+    <key name="bluetooth-power-saving" type="b">
       <default>true</default>
       <summary>Enable Bluetooth power saving</summary>
       <description>Set Bluetooth power saving when screen is off.</description>
     </key>
 
     <key name="bluetooth-power-saving-blacklist" type="as">
-      <default>['io.gitlab.azymohliad.WatchMate']</default>
-      <summary>Do not enable Bluetooth power saving if those apps are running</summary>
+      <default>[]</default>
+      <summary>Do not enable Bluetooth power saving if these apps are running</summary>
       <description>If applications in list are running, do not enable power saving.</description>
     </key>
 
-    <key name="screen-off-suspend-processes" type="as">
-      <default>['msm_irqbalance']</default>
-      <summary>Suspend these processes when screen is off</summary>
-      <description>When screen is turned off, processes in list are suspended.</description>
-    </key>
-
-    <key name="screen-off-background-processes" type="as">
-      <default>['qcrild', 'hwservicemanager', 'shsusrd', 'android.hardware.health', 'cas@1', 'drm@1', 'drmserver', 'keystore', 'omx@1', 'mediaswcodec']</default>
+    <key name="cpuset-background-processes" type="as">
+      <default>[]</default>
       <summary>Move these processes to background cpuset when screen is off</summary>
       <description>When screen is turned off, processes in list are moved to background cpuset.</description>
     </key>
 
-    <key name="screen-off-suspend-apps-blacklist" type="as">
-      <default>['org.gnome.Calls', 'sm.puri.Chatty', 'org.gnome.clocks', 'org.kop316.antispam']</default>
+    <key name="suspend-services" type="b">
+      <default>false</default>
+      <summary>Suspend services when screen is off</summary>
+      <description>[MAINTAINER] Set blacklist later for this to work.</description>
+    </key>
+
+    <key name="suspend-apps-blacklist" type="as">
+      <default>[]</default>
       <summary>Do not suspend these apps when screen is off</summary>
       <description>When screen is turned off, these apps will be ignored.</description>
     </key>
 
-    <key name="screen-off-suspend-user-services" type="as">
+    <key name="suspend-processes" type="as">
       <default>[]</default>
-      <summary>Suspend these services when screen is off</summary>
-      <description>When screen is turned off, services in list are suspended.</description>
+      <summary>Suspend these processes when screen is off</summary>
+      <description>When screen is turned off, processes in list are suspended.</description>
     </key>
 
-    <key name="screen-off-suspend-system-services" type="as">
+    <key name="suspend-user-services-blacklist" type="as">
+      <default>['mobile-power-saver.service']</default>
+      <summary>Do not suspend these services when screen is off</summary>
+      <description>When screen is turned off, these services will be ignored.</description>
+    </key>
+
+    <key name="suspend-system-services-blacklist" type="as">
       <default>[]</default>
-      <summary>Suspend these services when screen is off</summary>
-      <description>When screen is turned off, services in list are suspended.</description>
+      <summary>Do not suspend these services when screen is off</summary>
+      <description>When screen is turned off, these services will be ignored.</description>
+    </key>
+
+    <key name="suspend-bluetooth-services" type="as">
+      <default>[]</default>
+      <summary>Suspend these bluetooth services</summary>
+      <description>When screen is turned off and bluetooth is unused, these services will be suspended.</description>
     </key>
 
     <key name="radio-power-saving" type="b">
       <default>false</default>
       <summary>Enable radio power saving</summary>
-      <description>Save power by moving radio devices to lower data mode.</description>
+      <description>When screen is turned off, move radio devices to lower data mode.</description>
     </key>
 
     <key name="radio-power-saving-blacklist" type="i">
       <default>1</default>
-      <summary>Blacklisted access mode for powersaving</summary>
-      <description>See ModemManager MMModemMode for values.</description>
+      <summary>REMOVE ME LATER</summary>
+      <description>REMOVE ME LATER</description>
     </key>
 
     <key name="devfreq-blacklist" type="as">
       <default>[]</default>
-      <summary>[MAINTAINER ONLY] Do not set those devfreq devices to powersave</summary>
+      <summary>[MAINTAINER ONLY] Do not set these devfreq devices to powersave</summary>
       <description>Some devfreq devices may hang if so. Use a GLib schema override for your device.</description>
     </key>
 
     <key name="cpuset-blacklist" type="as">
-      <default>['pipewire.service', 'audiosystem-passthrough.service', 'pulseaudio.service', 'mobile-power-saver.service']</default>
-      <summary>Do not move those cgroups to any cpuset</summary>
-      <description>Those cgroups will not be moved to any cpuset.</description>
+      <default>['mobile-power-saver.service']</default>
+      <summary>Do not move these cgroups to any cpuset</summary>
+      <description>These cgroups will not be moved to any cpuset.</description>
     </key>
 
     <key name="cpuset-topapp" type="as">
-      <default>['sm.puri.Phosh.service']</default>
-      <summary>Move those cgroups to top-app cpuset</summary>
-      <description>Those cgroups will not be moved to top-app cpuset.</description>
+      <default>[]</default>
+      <summary>Move these cgroups to top-app cpuset</summary>
+      <description>These cgroups will be moved to top-app cpuset.</description>
     </key>
 
   </schema>

@@ -45,21 +45,22 @@ struct _ProcessesClass {
 GType           processes_get_type                     (void) G_GNUC_CONST;
 
 GObject*        processes_new                          (void);
-void            processes_update                       (Processes *self);
-void            processes_suspend                      (Processes *self,
-                                                        GList     *processes);
-void            processes_resume                       (Processes *self,
-                                                        GList     *processes);
-void            processes_set_cpuset                   (Processes *self,
-                                                        GList     *processes,
+void            processes_update                       (Processes  *self);
+void            processes_suspend                      (Processes  *self,
+                                                        GList      *processes);
+void            processes_resume                       (Processes  *self,
+                                                        GList      *processes);
+void            processes_set_cpuset                   (Processes  *self,
+                                                        GList      *processes,
                                                         CpuSet     cpuset);
-void            processes_set_services_cpuset          (Processes *self,
-                                                        GList     *cgroups,
-                                                        CpuSet     cpuset);
-void            processes_cpuset_set_blacklist         (Processes *self,
-                                                        GList     *blacklist);
-void            processes_cpuset_set_topapp            (Processes *self,
-                                                        GList     *topapp);
+void            processes_set_services_cpuset          (Processes  *self,
+                                                        const char *cgroup_path,
+                                                        GList      *services,
+                                                        CpuSet      cpuset);
+void            processes_cpuset_set_blacklist         (Processes  *self,
+                                                        GList      *blacklist);
+void            processes_cpuset_set_topapp            (Processes  *self,
+                                                        GList      *topapp);
 
 G_END_DECLS
 

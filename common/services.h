@@ -48,6 +48,10 @@ void            services_freeze              (Services *self,
                                               GList   *services);
 void            services_unfreeze            (Services *self,
                                               GList   *services);
+void            services_freeze_all          (Services *self,
+                                              GList   *blacklist);
+void            services_unfreeze_all        (Services *self,
+                                              GList   *blacklist);
 G_END_DECLS
 
 #endif
