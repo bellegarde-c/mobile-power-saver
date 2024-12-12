@@ -214,7 +214,7 @@ settings_can_freeze_app (Settings   *self,
                          const char *app_scope)
 {
     g_autoptr (GVariant) value = g_settings_get_value (
-        self->priv->settings, "screen-off-suspend-apps-blacklist"
+        self->priv->settings, "suspend-apps-blacklist"
     );
     g_autoptr (GVariantIter) iter;
     const char *application;
@@ -227,20 +227,38 @@ settings_can_freeze_app (Settings   *self,
     return TRUE;
 }
 
+
 /**
- * settings_get_suspend_services
+ * settings_suspend_services:
  *
- * Get services those can be suspended
+ * Check if services should be suspended
+ *
+ * @self: a #Settings
+ *
+ * Returns: TRUE if services should be suspended
+ */
+gboolean
+settings_suspend_services (Settings *self)
+{
+    return g_settings_get_boolean (
+        self->priv->settings, "suspend-services"
+    );
+}
+
+/**
+ * settings_get_suspend_services_blacklist
+ *
+ * Get services those can't be suspended
  *
  * @self: a #Settings
  *
  * Return value: (transfer full): services list.
  */
 GList *
-settings_get_suspend_services (Settings *self)
+settings_get_suspend_services_blacklist (Settings *self)
 {
     g_autoptr (GVariant) value = g_settings_get_value (
-        self->priv->settings, "screen-off-suspend-user-services"
+        self->priv->settings, "suspend-user-services-blacklist"
     );
     g_autoptr (GVariantIter) iter;
     const char *service;

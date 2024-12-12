@@ -22,11 +22,11 @@ These are only examples that need to be tweaked depending on device/OS!
 
 - Suspend system services:
 
-`$ gsettings set org.adishatz.Mps screen-off-suspend-system-services "['cups.service', 'nfcd.service']"`
+`$ gsettings set org.adishatz.Mps suspend-system-services-blacklist "['cups.service', 'nfcd.service']"`
 
 - Suspend user services:
 
-`$ gsettings set org.adishatz.Mps screen-off-suspend-user-services "['gvfs-afc-volume-monitor.service']"`
+`$ gsettings set org.adishatz.Mps suspend-user-services-blacklist "['gvfs-afc-volume-monitor.service']"`
 
 ## Depends on
 

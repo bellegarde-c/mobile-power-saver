@@ -11,6 +11,7 @@
 #include "bus.h"
 #include "dozing.h"
 #include "settings.h"
+#include "../common/services.h"
 #include "../common/utils.h"
 
 #define DOZING_PRE_SLEEP          60
@@ -35,6 +36,7 @@ enum DozingType {
 struct _DozingPrivate {
     GList *apps;
     Mpris *mpris;
+    Services *services;
 
     guint type;
     guint timeout_id;
@@ -85,6 +87,50 @@ queue_next_freeze (Dozing *self)
         self->priv->type += 1;
 }
 
+static void
+freeze_services (Dozing *self)
+{
+    Bus *bus = bus_get_default ();
+
+    g_message("Freezing services");
+
+    bus_set_value (bus,
+                   "dozing",
+                   g_variant_new ("b", TRUE));
+
+    if (settings_suspend_services (settings_get_default ())) {
+        GList *blacklist = settings_get_suspend_services_blacklist (
+            settings_get_default ()
+        );
+
+        services_freeze_all (self->priv->services, blacklist);
+
+        g_list_free_full (blacklist, g_free);
+    }
+}
+
+static void
+unfreeze_services (Dozing *self)
+{
+    Bus *bus = bus_get_default ();
+
+    g_message("Unfreezing services");
+
+    bus_set_value (bus,
+                   "dozing",
+                   g_variant_new ("b", FALSE));
+
+    if (settings_suspend_services (settings_get_default ())) {
+        GList *blacklist = settings_get_suspend_services_blacklist (
+            settings_get_default ()
+        );
+
+        services_unfreeze_all (self->priv->services, blacklist);
+
+        g_list_free_full (blacklist, g_free);
+    }
+}
+
 static gboolean
 freeze_apps (Dozing *self)
 {
@@ -111,6 +157,7 @@ freeze_apps (Dozing *self)
         bus_set_value (bus,
                        "little-cluster-powersave",
                        g_variant_new ("b", TRUE));
+        freeze_services (self);
     }
 
     self->priv->timeout_id = g_timeout_add_seconds (
@@ -134,6 +181,8 @@ unfreeze_apps (Dozing *self)
     GFOREACH (self->priv->apps, app)
         write_to_file (app, "0");
 
+    unfreeze_services (self);
+
     queue_next_freeze (self);
 
     return FALSE;
@@ -142,6 +191,10 @@ unfreeze_apps (Dozing *self)
 static void
 dozing_dispose (GObject *dozing)
 {
+    Dozing *self = DOZING (dozing);
+
+    g_clear_object (&self->priv->services);
+
     G_OBJECT_CLASS (dozing_parent_class)->dispose (dozing);
 }
 
@@ -171,6 +224,7 @@ dozing_init (Dozing *self)
     self->priv = dozing_get_instance_private (self);
 
     self->priv->mpris = MPRIS (mpris_new ());
+    self->priv->services = SERVICES (services_new (G_BUS_TYPE_SESSION));
 
     self->priv->apps = NULL;
     self->priv->type = DOZING_LIGHT;
@@ -227,6 +281,8 @@ dozing_stop (Dozing  *self) {
     const char *app;
 
     g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
+
+    unfreeze_services (self);
 
     g_message("Unfreezing apps");
     GFOREACH (self->priv->apps, app)

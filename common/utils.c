@@ -74,17 +74,18 @@ GList *get_cgroup_services (const char *path)
     while ((cgroup_dir = g_dir_read_name (sys_dir)) != NULL) {
         g_autofree char *cgroup = NULL;
 
-        if (!g_str_has_suffix (cgroup_dir, ".service"))
-            continue;
+        if (g_str_has_suffix (cgroup_dir, ".service")) {
+            cgroup = g_build_filename (
+                path, cgroup_dir, "cgroup.procs", NULL
+            );
 
-        cgroup = g_build_filename (
-            path, cgroup_dir, "cgroup.procs", NULL
-        );
+            if (!g_file_test (cgroup, G_FILE_TEST_EXISTS)) {
+                g_warning ("cgroup not found: %s", cgroup);
+                continue;
+            }
 
-        if (!g_file_test (cgroup, G_FILE_TEST_EXISTS))
-            continue;
-
-        services = g_list_prepend (services, g_strdup (cgroup));
+            services = g_list_prepend (services, g_strdup (cgroup_dir));
+        }
     }
     return services;
 }
@@ -106,14 +107,13 @@ get_cgroup_slices (const char *path)
     while ((cgroup_dir = g_dir_read_name (sys_dir)) != NULL) {
         g_autofree char *slice = NULL;
 
-        if (!g_str_has_suffix (cgroup_dir, ".slice"))
-            continue;
-
-        slice = g_build_filename (
-            path, cgroup_dir, NULL
-        );
-
-        slices = g_list_prepend (slices, g_strdup (slice));
+        if (g_str_has_suffix (cgroup_dir, ".slice")) {
+            slice = g_build_filename (
+                path, cgroup_dir, NULL
+            );
+            slices = g_list_concat (slices, get_cgroup_slices (slice));
+            slices = g_list_prepend (slices, g_strdup (slice));
+        }
     }
     return slices;
 }
@@ -153,4 +153,17 @@ get_list_from_variant (GVariant *value)
     }
 
     return list;
+}
+
+gboolean
+in_list (GList      *list,
+         const char *value)
+{
+    const char *item;
+
+    GFOREACH (list, item) {
+        if (g_strcmp0 (item, value) == 0)
+            return TRUE;
+    }
+    return FALSE;
 }

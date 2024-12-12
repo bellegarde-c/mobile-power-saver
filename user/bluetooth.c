@@ -8,6 +8,7 @@
 #include <gio/gio.h>
 
 #include "bluetooth.h"
+#include "bus.h"
 #include "settings.h"
 #include "../common/define.h"
 #include "../common/utils.h"
@@ -316,6 +317,7 @@ void
 bluetooth_set_powersave (Bluetooth *self,
                          gboolean   powersave)
 {
+    Bus *bus = bus_get_default ();
     g_autoptr (GDBusProxy) proxy = NULL;
     g_autoptr (GError) error = NULL;
 
@@ -363,4 +365,8 @@ bluetooth_set_powersave (Bluetooth *self,
         g_warning ("Can't set device powered state: %s", error->message);
         return;
     }
+
+    bus_set_value (bus,
+                   "suspend-bluetooth",
+                   g_variant_new ("b", powersave));
 }

@@ -41,16 +41,17 @@ struct _SettingsClass {
     GObjectClass parent_class;
 };
 
-GType           settings_get_type                      (void) G_GNUC_CONST;
+GType           settings_get_type                       (void) G_GNUC_CONST;
 
-Settings       *settings_get_default                   (void);
-void            settings_free_default                  (void);
-GObject*        settings_new                           (void);
-gboolean        settings_can_bluetooth_powersave       (Settings   *self,
-                                                        const char *app_scope);
-gboolean        settings_can_freeze_app                (Settings   *self,
-                                                        const char *app_scope);
-GList          *settings_get_suspend_services          (Settings    *self);
+Settings       *settings_get_default                    (void);
+void            settings_free_default                   (void);
+GObject*        settings_new                            (void);
+gboolean        settings_can_bluetooth_powersave        (Settings   *self,
+                                                         const char *app_scope);
+gboolean        settings_can_freeze_app                 (Settings   *self,
+                                                         const char *app_scope);
+gboolean        settings_suspend_services               (Settings   *self);
+GList          *settings_get_suspend_services_blacklist (Settings   *self);
 
 G_END_DECLS
 

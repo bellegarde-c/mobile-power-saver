@@ -45,6 +45,47 @@ get_cgroups_paths (Services *self)
 }
 
 static void
+services_set_service_freeze_state (Services   *self,
+                                   const char *path,
+                                   const char *service,
+                                   const char *state)
+{
+    g_autofree char *filename = NULL;
+
+    filename = g_build_filename (
+        path, service, "cgroup.freeze", NULL
+    );
+
+    if (g_file_test (filename, G_FILE_TEST_EXISTS))
+        write_to_file (filename, state);
+}
+
+static void
+services_set_services_freeze_state (Services   *self,
+                                    GList      *blacklist,
+                                    const char *state)
+{
+    GList *paths = get_cgroups_paths (self);
+    const char *path;
+    const char *service;
+
+    GFOREACH (paths, path) {
+        GList *services = get_cgroup_services (path);
+
+        GFOREACH_SUB (services, service) {
+            g_autofree char *filename = NULL;
+
+            if (in_list (blacklist, service))
+                continue;
+
+            services_set_service_freeze_state (self, path, service, state);
+        }
+        g_list_free_full (services, g_free);
+    }
+    g_list_free_full (paths, g_free);
+}
+
+static void
 services_dispose (GObject *services)
 {
     G_OBJECT_CLASS (services_parent_class)->dispose (services);
@@ -101,7 +142,7 @@ services_new (GBusType service_type)
  * Freeze services
  *
  * @param #Services
- * @param services: services to start
+ * @param services: services to freeze
  *
  **/
 void
@@ -109,18 +150,15 @@ services_freeze (Services *self,
                  GList    *services)
 {
     GList *paths = get_cgroups_paths (self);
-    const char *path;
     const char *service;
+    const char *path;
 
-    GFOREACH (paths, path) {
-        GFOREACH_SUB (services, service) {
-            g_autofree char *filename = g_build_filename (
-                path, service, "cgroup.freeze", NULL
-            );
-            if (g_file_test (filename, G_FILE_TEST_EXISTS))
-                write_to_file (filename, "1");
+    GFOREACH (services, service) {
+        GFOREACH_SUB (paths, path) {
+            services_set_service_freeze_state (self, path, service, "1");
         }
     }
+
     g_list_free_full (paths, g_free);
 }
 
@@ -130,7 +168,7 @@ services_freeze (Services *self,
  * Unfreeze services
  *
  * @param #Services
- * @param services: services to stop
+ * @param services: services to unfreeze
  *
  **/
 void
@@ -138,17 +176,46 @@ services_unfreeze (Services *self,
                    GList   *services)
 {
     GList *paths = get_cgroups_paths (self);
-    const char *path;
     const char *service;
+    const char *path;
 
-    GFOREACH (paths, path) {
-        GFOREACH_SUB (services, service) {
-            g_autofree char *filename = g_build_filename (
-                path, service, "cgroup.freeze", NULL
-            );
-            if (g_file_test (filename, G_FILE_TEST_EXISTS))
-                write_to_file (filename, "0");
+    GFOREACH (services, service) {
+        GFOREACH_SUB (paths, path) {
+            services_set_service_freeze_state (self, path, service, "0");
         }
     }
+
     g_list_free_full (paths, g_free);
+}
+
+/**
+ * services_freeze_all:
+ *
+ * Freeze all services
+ *
+ * @param #Services
+ * @param blacklist: blacklisted services
+ *
+ **/
+void
+services_freeze_all (Services *self,
+                     GList    *blacklist)
+{
+    services_set_services_freeze_state (self, blacklist, "1");
+}
+
+/**
+ * services_unfreeze_all:
+ *
+ * Unfreeze all services
+ *
+ * @param #Services
+ * @param blacklist: blacklisted services
+ *
+ **/
+void
+services_unfreeze_all (Services *self,
+                       GList    *blacklist)
+{
+    services_set_services_freeze_state (self, blacklist, "0");
 }

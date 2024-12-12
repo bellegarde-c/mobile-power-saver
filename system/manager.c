@@ -37,9 +37,12 @@ struct _ManagerPrivate {
 #endif
 
     gboolean screen_off_power_saving;
-    GList *screen_off_suspend_processes;
-    GList *screen_off_background_processes;
-    GList *screen_off_suspend_system_services;
+    gboolean suspend_services;
+
+    GList *suspend_processes;
+    GList *cpuset_background_processes;
+    GList *suspend_system_services_blacklist;
+    GList *suspend_bluetooth_services;
 
     char *cgroups_user_dir;
 
@@ -90,54 +93,42 @@ on_screen_state_changed (Logind logind,
 
         if (screen_on) {
             cpufreq_set_powersave (self->priv->cpufreq, FALSE, TRUE);
-            processes_resume (
-                self->priv->processes,
-                self->priv->screen_off_suspend_processes
-            );
             processes_set_cpuset (
                 self->priv->processes,
-                self->priv->screen_off_background_processes,
+                self->priv->cpuset_background_processes,
                 CPUSET_SYSTEM_BACKGROUND
             );
             processes_set_services_cpuset (
                 self->priv->processes,
+                CGROUPS_SYSTEM_SERVICES_DIR,
                 system_services,
                 CPUSET_SYSTEM_BACKGROUND
             );
             processes_set_services_cpuset (
                 self->priv->processes,
+                self->priv->cgroups_user_dir,
                 user_services,
                 CPUSET_FOREGROUND
-            );
-            services_unfreeze (
-                self->priv->services,
-                self->priv->screen_off_suspend_system_services
             );
         } else {
             cpufreq_set_powersave (self->priv->cpufreq, TRUE, FALSE);
             processes_update (self->priv->processes);
-            processes_suspend (
-                self->priv->processes,
-                self->priv->screen_off_suspend_processes
-            );
             processes_set_cpuset (
                 self->priv->processes,
-                self->priv->screen_off_background_processes,
+                self->priv->cpuset_background_processes,
                 CPUSET_BACKGROUND
             );
             processes_set_services_cpuset (
                 self->priv->processes,
+                CGROUPS_SYSTEM_SERVICES_DIR,
                 system_services,
                 CPUSET_BACKGROUND
             );
             processes_set_services_cpuset (
                 self->priv->processes,
+                self->priv->cgroups_user_dir,
                 user_services,
-                CPUSET_BACKGROUND
-            );
-            services_freeze (
-                self->priv->services,
-                self->priv->screen_off_suspend_system_services
+                CPUSET_SYSTEM_BACKGROUND
             );
         }
     }
@@ -189,25 +180,18 @@ on_bus_setting_changed (Bus      *bus,
             cpufreq_set_powersave (self->priv->cpufreq, FALSE, TRUE);
             devfreq_set_powersave (self->priv->devfreq, FALSE);
         }
-    } else if (g_strcmp0 (setting, "screen-off-suspend-processes") == 0) {
+    } else if (g_strcmp0 (setting, "cpuset-background-processes") == 0) {
         g_list_free_full (
-            self->priv->screen_off_suspend_processes, g_free
+            self->priv->cpuset_background_processes, g_free
         );
-        self->priv->screen_off_suspend_processes = get_list_from_variant (
+        self->priv->cpuset_background_processes = get_list_from_variant (
             inner_value
         );
-    } else if (g_strcmp0 (setting, "screen-off-background-processes") == 0) {
+    } else if (g_strcmp0 (setting, "suspend-system-services-blacklist") == 0) {
         g_list_free_full (
-            self->priv->screen_off_background_processes, g_free
+            self->priv->suspend_system_services_blacklist, g_free
         );
-        self->priv->screen_off_background_processes = get_list_from_variant (
-            inner_value
-        );
-    } else if (g_strcmp0 (setting, "screen-off-suspend-system-services") == 0) {
-        g_list_free_full (
-            self->priv->screen_off_suspend_system_services, g_free
-        );
-        self->priv->screen_off_suspend_system_services = get_list_from_variant (
+        self->priv->suspend_system_services_blacklist = get_list_from_variant (
             inner_value
         );
     } else if (g_strcmp0 (setting, "devfreq-blacklist") == 0) {
@@ -237,6 +221,78 @@ on_bus_setting_changed (Bus      *bus,
         gboolean radio_power_saving = g_variant_get_boolean (inner_value);
 
         self->priv->radio_power_saving = radio_power_saving;
+    } else if (g_strcmp0 (setting, "dozing") == 0) {
+        gboolean dozing = g_variant_get_boolean (inner_value);
+
+        if (self->priv->suspend_services) {
+            GList *blacklist = g_list_copy_deep (
+                self->priv->suspend_system_services_blacklist,
+                (GCopyFunc) g_strdup,
+                NULL
+            );
+            const char *service;
+
+            GFOREACH (self->priv->suspend_bluetooth_services, service) {
+                blacklist = g_list_prepend (blacklist, g_strdup (service));
+            }
+
+            if (dozing) {
+                services_freeze_all (
+                    self->priv->services,
+                    self->priv->suspend_system_services_blacklist
+                );
+            } else {
+                services_unfreeze_all (
+                    self->priv->services,
+                    self->priv->suspend_system_services_blacklist
+                );
+            }
+
+            g_list_free_full (blacklist, g_free);
+        }
+
+        if (dozing) {
+            processes_suspend (
+                self->priv->processes,
+                self->priv->suspend_processes
+            );
+        } else {
+            processes_resume (
+                self->priv->processes,
+                self->priv->suspend_processes
+            );
+        }
+    } else if (g_strcmp0 (setting, "suspend-processes") == 0) {
+        g_list_free_full (
+            self->priv->suspend_processes, g_free
+        );
+        self->priv->suspend_processes = get_list_from_variant (
+            inner_value
+        );
+    } else if (g_strcmp0 (setting, "suspend-bluetooth-services") == 0) {
+        g_list_free_full (
+            self->priv->suspend_bluetooth_services, g_free
+        );
+        self->priv->suspend_bluetooth_services = get_list_from_variant (
+            inner_value
+        );
+    } else if (g_strcmp0 (setting, "suspend-bluetooth") == 0 &&
+                                         self->priv->suspend_services) {
+        gboolean suspend = g_variant_get_boolean (inner_value);
+
+        if (suspend) {
+            services_freeze (
+                self->priv->services,
+                self->priv->suspend_bluetooth_services
+            );
+        } else {
+            services_unfreeze (
+                self->priv->services,
+                self->priv->suspend_bluetooth_services
+            );
+        }
+    } else if (g_strcmp0 (setting, "suspend-services") == 0) {
+        self->priv->suspend_services = g_variant_get_boolean (inner_value);
     }
 }
 
@@ -263,13 +319,16 @@ manager_finalize (GObject *manager)
     Manager *self = MANAGER (manager);
 
     g_list_free_full (
-        self->priv->screen_off_suspend_processes, g_free
+        self->priv->suspend_processes, g_free
     );
     g_list_free_full (
-        self->priv->screen_off_background_processes, g_free
+        self->priv->cpuset_background_processes, g_free
     );
     g_list_free_full (
-        self->priv->screen_off_suspend_system_services, g_free
+        self->priv->suspend_system_services_blacklist, g_free
+    );
+    g_list_free_full (
+        self->priv->suspend_bluetooth_services, g_free
     );
 
     if (self->priv->cgroups_user_dir != NULL) {
@@ -304,9 +363,14 @@ manager_init (Manager *self)
 #endif
 
     self->priv->screen_off_power_saving = TRUE;
+    self->priv->suspend_services = FALSE;
+
     self->priv->radio_power_saving = FALSE;
-    self->priv->screen_off_suspend_processes = NULL;
+    self->priv->suspend_processes = NULL;
     self->priv->cgroups_user_dir = NULL;
+    self->priv->suspend_system_services_blacklist = NULL;
+    self->priv->cpuset_background_processes = NULL;
+    self->priv->suspend_bluetooth_services = NULL;
 
     g_signal_connect (
         logind_get_default (),
