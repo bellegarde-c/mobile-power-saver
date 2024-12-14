@@ -221,9 +221,7 @@ processes_new (void)
  */
 void
 processes_update (Processes *self) {
-    if (self->priv->processes != NULL) {
-        g_list_free_full (self->priv->processes, g_free);
-    }
+    g_list_free_full (self->priv->processes, g_free);
     self->priv->processes = get_processes (self);
 }
 
