@@ -1,0 +1,3 @@
+[org.adishatz.Mps]
+cpuset-background-processes=['qcrild']
+suspend-processes=['msm_irqbalance', 'hwservicemanager', 'storaged', 'netmgrd', 'shsusrd', 'android.hardware.health', 'cas@1', 'drm@1', 'drmserver', 'keystore', 'omx@1', 'mediaswcodec', 'wfdhdcphalservice', 'miniafservice', 'minimediaservice', 'installd', 'statsd', 'idmap2d', 'drmserver', 'camera_service', 'charge_logger', 'adpl', 'tloc_daemon', 'lowi-server', 'slim_daemon', 'xtra-daemon', 'ssgqmigd', 'ssgtzd', 'mlid', 'port-bridge']
