@@ -135,13 +135,10 @@ get_processes (Processes *self)
     }
 
     while ((pid_dir = g_dir_read_name (proc_dir)) != NULL) {
-        g_autofree char *contents = NULL;
+        char contents[MAX_BUFSZ] = {0};
         g_autofree char *directory = g_build_filename (
             "/proc", pid_dir, NULL
         );
-
-        if ((contents = g_malloc (MAX_BUFSZ)) == NULL)
-            return NULL;
 
         if (read_unvectored(contents, MAX_BUFSZ, directory, "cmdline", ' ')) {
             struct Process *process = g_malloc (sizeof (struct Process));
