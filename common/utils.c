@@ -49,8 +49,10 @@ GList *get_applications (void)
                 dirname, app_dir, "cgroup.freeze", NULL
             );
 
-            if (!g_file_test (app, G_FILE_TEST_EXISTS))
+            if (!g_file_test (app, G_FILE_TEST_EXISTS)) {
+                g_free (app);
                 continue;
+            }
 
             apps = g_list_prepend (apps, app);
         }
