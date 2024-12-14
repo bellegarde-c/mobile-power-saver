@@ -237,6 +237,7 @@ processes_suspend (Processes *self,
     struct Process *process;
 
     g_return_if_fail (self->priv->processes != NULL);
+    g_return_if_fail (processes != NULL);
 
     GFOREACH (self->priv->processes, process)
         if (process_in_list (processes, process))
@@ -259,6 +260,7 @@ processes_resume (Processes *self,
     struct Process *process;
 
     g_return_if_fail (self->priv->processes != NULL);
+    g_return_if_fail (processes != NULL);
 
     GFOREACH (self->priv->processes, process)
         if (process_in_list (processes, process))
@@ -282,6 +284,7 @@ void  processes_set_cpuset (Processes *self,
     const char *cpuset_path;
 
     g_return_if_fail (self->priv->processes != NULL);
+    g_return_if_fail (processes != NULL);
 
     cpuset_path = get_cpuset_path (cpuset);
 
@@ -309,6 +312,8 @@ void  processes_set_services_cpuset (Processes  *self,
                                      GList      *services,
                                      CpuSet      cpuset) {
     const char *service;
+
+    g_return_if_fail (services != NULL);
 
     GFOREACH (services, service) {
         GList *pids = NULL;
