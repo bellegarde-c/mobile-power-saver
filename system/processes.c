@@ -136,7 +136,13 @@ get_processes (Processes *self)
 
     while ((pid_dir = g_dir_read_name (proc_dir)) != NULL) {
         char contents[MAX_BUFSZ] = {0};
-        g_autofree char *directory = g_build_filename (
+        g_autofree char *directory = NULL;
+
+        // Skip non-numeric entries
+        if (!g_ascii_isdigit(pid_dir[0]))
+            continue;
+
+        directory = g_build_filename (
             "/proc", pid_dir, NULL
         );
 
