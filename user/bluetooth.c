@@ -119,6 +119,11 @@ on_bluez_object_added (GDBusObjectManager *object_manager,
     }
 
     value = g_dbus_proxy_get_cached_property (proxy, "Paired");
+    if (!value) {
+        g_warning ("Paired property not available.");
+        return;
+    }
+
     g_variant_get (value, "b", &paired);
 
     if (!paired)
