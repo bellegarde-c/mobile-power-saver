@@ -157,8 +157,9 @@ freeze_apps (Dozing *self)
         bus_set_value (bus,
                        "little-cluster-powersave",
                        g_variant_new ("b", TRUE));
-        freeze_services (self);
     }
+
+    freeze_services (self);
 
     g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
     self->priv->timeout_id = g_timeout_add_seconds (
