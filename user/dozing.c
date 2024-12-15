@@ -160,6 +160,7 @@ freeze_apps (Dozing *self)
         freeze_services (self);
     }
 
+    g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
     self->priv->timeout_id = g_timeout_add_seconds (
         get_sleep (self),
         (GSourceFunc) unfreeze_apps,
@@ -259,6 +260,8 @@ dozing_new (Mpris *mpris)
  */
 void
 dozing_start (Dozing  *self) {
+    g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
+
     self->priv->apps = get_applications();
 
     self->priv->type = DOZING_LIGHT;
