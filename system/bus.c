@@ -286,6 +286,11 @@ bus_init_path (const char *dbus_name,
         NULL
     );
 
+    if (!bytes) {
+        g_error("Failed to lookup resource: %s", xml);
+        return NULL;
+    }
+
     introspection_data = g_dbus_node_info_new_for_xml (
         g_bytes_get_data (bytes, NULL),
         NULL
@@ -391,6 +396,8 @@ bus_init (Bus *self)
     );
 
     self->priv->power_profile = POWER_PROFILE_BALANCED;
+    self->priv->adishatz_connection = NULL;
+    self->priv->hadess_connection = NULL;
 }
 
 /**
