@@ -142,6 +142,9 @@ freq_device_set_name (FreqDevice *self,
         self->priv->sysfs_dir, device_name, self->priv->governor_node, NULL
     );
 
+    g_return_if_fail (self->priv->device_name == NULL);
+    g_return_if_fail (device_name != NULL);
+
     self->priv->device_name = g_strdup (device_name);
 
     if (g_file_get_contents (filename, &contents, NULL, NULL)) {
