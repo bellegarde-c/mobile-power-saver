@@ -41,8 +41,10 @@ detect_devices (Cpufreq *self)
             CPUFREQ_POLICIES_DIR, policy_dir, "scaling_governor", NULL
         );
 
-        if (!g_file_test (filename, G_FILE_TEST_EXISTS))
+        if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+            g_object_unref (cpufreq_device);
             continue;
+        }
 
         freq_device_set_name (FREQ_DEVICE (cpufreq_device), policy_dir);
 
