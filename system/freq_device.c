@@ -189,7 +189,7 @@ freq_device_set_powersave (FreqDevice *self,
         set_governor (self, "powersave");
     else if (self->priv->current_governor != NULL)
         set_governor (self, self->priv->current_governor);
-    else
+    else if (self->priv->default_governor != NULL)
         set_governor (self, self->priv->default_governor);
 }
 
