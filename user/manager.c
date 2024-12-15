@@ -75,6 +75,8 @@ manager_dispose (GObject *manager)
 {
     Manager *self = MANAGER (manager);
 
+    dozing_stop (self->priv->dozing);
+
     g_clear_object (&self->priv->dozing);
     g_clear_object (&self->priv->mpris);
 

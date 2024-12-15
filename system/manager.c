@@ -301,6 +301,21 @@ manager_dispose (GObject *manager)
 {
     Manager *self = MANAGER (manager);
 
+    on_screen_state_changed (
+        *logind_get_default (),
+        TRUE,
+        manager
+    );
+
+    services_unfreeze_all (
+        self->priv->services,
+        self->priv->suspend_system_services_blacklist
+    );
+    services_unfreeze (
+        self->priv->services,
+        self->priv->suspend_bluetooth_services
+    );
+
     g_clear_object (&self->priv->cpufreq);
     g_clear_object (&self->priv->devfreq);
     g_clear_object (&self->priv->kernel_settings);
