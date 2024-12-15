@@ -6,7 +6,7 @@ Mobile Power Saver enables power saving on mobile devices:
 - Suspends services/processes when screen is off
 - Freezes applications (only when screen is off for now)
 
-## Settings ##
+## Settings
 
 GNOME Control Center patches are available here:
 https://github.com/droidian/gnome-control-center/commits/droidian/panels/power
@@ -14,19 +14,9 @@ https://github.com/droidian/gnome-control-center/commits/droidian/panels/power
 ![Power Settings](https://adishatz.org/data/mps_battery.png)
 ![App Settings](https://adishatz.org/data/mps_app_suspend.png)
 
-These are only examples that need to be tweaked depending on device/OS!
+## Support for userspace freezing
 
-- Suspend processes:
-
-`$ gsettings set org.adishatz.Mps screen-off-suspend-processes "['vendor.nxp.hardware.nfc@1.2-service']"`
-
-- Suspend system services:
-
-`$ gsettings set org.adishatz.Mps suspend-system-services-blacklist "['cups.service', 'nfcd.service']"`
-
-- Suspend user services:
-
-`$ gsettings set org.adishatz.Mps suspend-user-services-blacklist "['gvfs-afc-volume-monitor.service']"`
+[Overrides](Overrides.md)
 
 ## Depends on
 
