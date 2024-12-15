@@ -41,8 +41,10 @@ detect_devices (Devfreq *self)
             DEVFREQ_DIR, device_dir, "governor", NULL
         );
 
-        if (!g_file_test (filename, G_FILE_TEST_EXISTS))
+        if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+            g_object_unref (devfreq_device);
             continue;
+        }
 
         freq_device_set_name (FREQ_DEVICE (devfreq_device), device_dir);
 
