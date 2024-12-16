@@ -252,12 +252,12 @@ on_bus_setting_changed (Bus      *bus,
             if (dozing) {
                 services_freeze_all (
                     self->priv->services,
-                    self->priv->suspend_system_services_blacklist
+                    blacklist
                 );
             } else {
                 services_unfreeze_all (
                     self->priv->services,
-                    self->priv->suspend_system_services_blacklist
+                    blacklist
                 );
             }
 
