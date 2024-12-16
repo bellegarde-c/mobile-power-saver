@@ -29,17 +29,19 @@ init_binder_client (BinderClient *self,
                     const gchar  *service,
                     const gchar  *client)
 {
-    if (!g_file_test (GBINDER_DEFAULT_HWBINDER, G_FILE_TEST_EXISTS))
+    if (!g_file_test (device, G_FILE_TEST_EXISTS))
         return FALSE;
 
     g_message ("Init binder: %s -> %s -> %s", device, service, client);
 
     self->priv->service_manager = gbinder_servicemanager_new(
-        GBINDER_DEFAULT_HWBINDER
+        device
     );
 
-   if (self->priv->service_manager == NULL)
-       return FALSE;
+    if (self->priv->service_manager == NULL) {
+       g_warning ("Can't open device: %s", device);
+       goto cleanup;
+    }
 
     self->priv->remote_object = gbinder_servicemanager_get_service_sync(
         self->priv->service_manager,
@@ -47,8 +49,10 @@ init_binder_client (BinderClient *self,
         NULL
     );
 
-    if (self->priv->remote_object == NULL)
-        return FALSE;
+    if (self->priv->remote_object == NULL) {
+        g_warning ("Can't connect service: %s", service);
+        goto cleanup;
+    }
 
     self->client = gbinder_client_new(
         self->priv->remote_object,
@@ -56,12 +60,22 @@ init_binder_client (BinderClient *self,
     );
 
     if (self->client == NULL) {
-        if (self->priv->remote_object != NULL)
-            gbinder_remote_object_unref(self->priv->remote_object);
-        return FALSE;
+        g_warning ("Can't connect client: %s", client);
+        goto cleanup;
     }
 
     return TRUE;
+
+cleanup:
+    if (self->priv->service_manager != NULL)
+        gbinder_servicemanager_unref(self->priv->service_manager);
+    if (self->priv->remote_object != NULL)
+        gbinder_remote_object_unref(self->priv->remote_object);
+
+    self->priv->service_manager = NULL;
+    self->priv->remote_object = NULL;
+
+    return FALSE;
 }
 
 static void
@@ -97,8 +111,9 @@ binder_client_finalize (GObject *binder_client)
     if (self->client != NULL)
         gbinder_client_unref(self->client);
 
-    if (self->priv->remote_object != NULL)
-        gbinder_remote_object_unref(self->priv->remote_object);
+    // Unref by client unref
+    /* if (self->priv->remote_object != NULL) */
+    /*     gbinder_remote_object_unref(self->priv->remote_object); */
 
     if (self->priv->service_manager != NULL)
         gbinder_servicemanager_unref(self->priv->service_manager);
