@@ -11,10 +11,13 @@
 #include "binder_radio.h"
 #include "../common/define.h"
 
+#define HIDL_SET_FEATURE_CODE 128
+#define AIDL_SET_FEATURE_CODE 14
+#define SERIAL_NUMBER 1
+
 enum IDLFeature {
     FEATURE_POWERSAVE    = 1,
-    /* FEATURE_CHARGING     = 2, */
-    FEATURE_LOW_DATA     = 3
+    FEATURE_LOW_DATA     = 2
 };
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -34,11 +37,13 @@ hidl_set_feature (BinderClient *self,
 
     gbinder_local_request_init_writer(req, &writer);
     /* serial */
-    gbinder_writer_append_int32(&writer, 1);
+    gbinder_writer_append_int32(&writer, SERIAL_NUMBER);
     gbinder_writer_append_int32(&writer, feature);
     gbinder_writer_append_bool(&writer, enabled);
     /* sendDeviceState */
-    gbinder_client_transact_sync_reply(self->client, 128, req, &status);
+    gbinder_client_transact_sync_reply(
+        self->client, HIDL_SET_FEATURE_CODE, req, &status
+    );
     gbinder_local_request_unref(req);
 }
 
@@ -52,11 +57,13 @@ aidl_set_feature (BinderClient *self,
 
     gbinder_local_request_init_writer(req, &writer);
     /* serial */
-    gbinder_writer_append_int32(&writer, 1);
+    gbinder_writer_append_int32(&writer, SERIAL_NUMBER);
     gbinder_writer_append_int32(&writer, feature);
     gbinder_writer_append_bool(&writer, enabled);
     /* sendDeviceState */
-    gbinder_client_transact_sync_reply(self->client, 14, req, &status);
+    gbinder_client_transact_sync_reply(
+        self->client, AIDL_SET_FEATURE_CODE, req, &status
+    );
     gbinder_local_request_unref(req);
 }
 
@@ -124,10 +131,10 @@ binder_radio_init (BinderRadio *self)
 
     klass->init_binder (
         BINDER_CLIENT (self),
-        "android.hardware.power@1.0::IPower/default",
-        "android.hardware.power@1.0::IPower",
-        "android.hardware.power.IPower/default",
-        "android.hardware.power.IPower"
+        "android.hardware.radio@1.0::IRadio/slot1",
+        "android.hardware.radio@1.0::IRadio",
+        "android.hardware.radio.modem.IRadioModem/default",
+        "android.hardware.radio.modem.IRadioModem"
     );
 }
 

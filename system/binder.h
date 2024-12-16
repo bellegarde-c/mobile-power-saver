@@ -46,8 +46,6 @@ struct _BinderClass {
 GType           binder_get_type            (void) G_GNUC_CONST;
 
 GObject*        binder_new                 (void);
-void            binder_set_power_profile   (Binder   *self,
-                                            PowerProfile power_profile);
 void            binder_set_powersave       (Binder  *self,
                                             gboolean powersave);
 G_END_DECLS

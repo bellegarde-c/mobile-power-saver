@@ -100,7 +100,8 @@ on_screen_state_changed (Logind logind,
             wifi_set_powersave (self->priv->wifi, !screen_on);
 #endif
 #ifdef BINDER_ENABLED
-        binder_set_powersave (self->priv->binder, !screen_on);
+        if (self->priv->radio_power_saving)
+            binder_set_powersave (self->priv->binder, !screen_on);
 #endif
 
         if (screen_on) {
@@ -158,9 +159,6 @@ set_power_profile (Manager      *self,
 
     cpufreq_set_governor (self->priv->cpufreq, governor);
     devfreq_set_governor (self->priv->devfreq, governor);
-#ifdef BINDER_ENABLED
-    binder_set_power_profile (self->priv->binder, power_profile);
-#endif
 }
 
 static void

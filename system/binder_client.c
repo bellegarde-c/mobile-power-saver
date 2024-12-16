@@ -32,6 +32,8 @@ init_binder_client (BinderClient *self,
     if (!g_file_test (GBINDER_DEFAULT_HWBINDER, G_FILE_TEST_EXISTS))
         return FALSE;
 
+    g_message ("Init binder: %s -> %s -> %s", device, service, client);
+
     self->priv->service_manager = gbinder_servicemanager_new(
         GBINDER_DEFAULT_HWBINDER
     );

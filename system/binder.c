@@ -75,21 +75,6 @@ binder_new (void)
 }
 
 /**
- * binder_set_power_profile:
- *
- * Set binder power profile
- *
- * @param #Binder
- * @param power_profile: Power profile to enable
- *
- */
-void
-binder_set_power_profile (Binder  *self,
-                          PowerProfile power_profile)
-{
-}
-
-/**
  * binder_set_powersave:
  *
  * Set binder to powersave mode
