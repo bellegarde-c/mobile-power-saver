@@ -139,7 +139,7 @@ get_processes (Processes *self)
         g_autofree char *directory = NULL;
 
         // Skip non-numeric entries
-        if (!g_ascii_isdigit(pid_dir[0]))
+        if (!g_ascii_isdigit (pid_dir[0]))
             continue;
 
         directory = g_build_filename (
