@@ -21,6 +21,11 @@ typedef enum {
 } PowerProfile;
 
 typedef enum {
+    BINDER_SERVICE_MANAGER_TYPE_AIDL,
+    BINDER_SERVICE_MANAGER_TYPE_HIDL
+} BinderServiceManagerType;
+
+typedef enum {
     CPUSET_BACKGROUND,
     CPUSET_SYSTEM_BACKGROUND,
     CPUSET_FOREGROUND,
