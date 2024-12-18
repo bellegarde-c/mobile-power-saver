@@ -326,15 +326,28 @@ void  processes_set_services_cpuset (Processes  *self,
         pid_t *pid;
         const char *name;
         const char *cpuset_path = NULL;
-        g_autofree char *cgroup_procs = g_build_filename (
-            cgroup_path, "cgroup.procs", NULL
-        );
+        char *cgroup_procs = NULL;
+        GList *slices = NULL;
 
         GFOREACH_SUB (self->priv->cpuset_blacklist, name) {
             if (g_strrstr (service, name) != NULL) {
                 goto end_loop;
             }
         }
+
+        slices = get_cgroup_slices (cgroup_path);
+        GFOREACH_SUB (slices, name) {
+            cgroup_procs = g_build_filename (
+                name, service, "cgroup.procs", NULL
+            );
+            if (g_file_test (cgroup_procs, G_FILE_TEST_EXISTS))
+                break;
+            g_free (cgroup_procs);
+            cgroup_procs = NULL;
+        }
+
+        if (cgroup_procs == NULL)
+            continue;
 
         if (cpuset == CPUSET_FOREGROUND) {
             GFOREACH_SUB (self->priv->cpuset_topapp, name) {
@@ -355,6 +368,8 @@ void  processes_set_services_cpuset (Processes  *self,
             write_to_file (cpuset_path, pid_str);
         }
         g_list_free_full (pids, g_free);
+        g_list_free_full (slices, g_free);
+        g_free (cgroup_procs);
 end_loop:
     }
 }
