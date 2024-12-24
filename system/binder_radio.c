@@ -17,7 +17,7 @@
 
 enum IDLFeature {
     FEATURE_POWERSAVE    = 1,
-    FEATURE_LOW_DATA     = 2
+    FEATURE_LOW_DATA     = 3
 };
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -35,15 +35,27 @@ hidl_set_feature (BinderClient *self,
     GBinderLocalRequest* req = gbinder_client_new_request(self->client);
     GBinderWriter writer;
 
+    if (!req) {
+        g_warning(
+            "Error: Failed to create new HIDL request for feature %d", feature
+        );
+        return;
+    }
+
     gbinder_local_request_init_writer(req, &writer);
     /* serial */
     gbinder_writer_append_int32(&writer, SERIAL_NUMBER);
     gbinder_writer_append_int32(&writer, feature);
     gbinder_writer_append_bool(&writer, enabled);
     /* sendDeviceState */
-    gbinder_client_transact_sync_reply(
-        self->client, HIDL_SET_FEATURE_CODE, req, &status
-    );
+    if (gbinder_client_transact_sync_reply(
+        self->client, HIDL_SET_FEATURE_CODE, req, &status) != GBINDER_STATUS_OK) {
+        g_warning(
+            "Error: HIDL transaction failed for feature %d, status: %d",
+            feature,
+            status
+        );
+    }
     gbinder_local_request_unref(req);
 }
 
@@ -55,15 +67,27 @@ aidl_set_feature (BinderClient *self,
     GBinderLocalRequest* req = gbinder_client_new_request(self->client);
     GBinderWriter writer;
 
+    if (!req) {
+        g_warning(
+            "Error: Failed to create new AIDL request for feature %d", feature
+        );
+        return;
+    }
+
     gbinder_local_request_init_writer(req, &writer);
     /* serial */
     gbinder_writer_append_int32(&writer, SERIAL_NUMBER);
     gbinder_writer_append_int32(&writer, feature);
     gbinder_writer_append_bool(&writer, enabled);
     /* sendDeviceState */
-    gbinder_client_transact_sync_reply(
-        self->client, AIDL_SET_FEATURE_CODE, req, &status
-    );
+    if (gbinder_client_transact_sync_reply(
+        self->client, AIDL_SET_FEATURE_CODE, req, &status) != GBINDER_STATUS_OK) {
+        g_warning(
+            "Error: AIDL transaction failed for feature %d, status: %d",
+            feature,
+            status
+        );
+    }
     gbinder_local_request_unref(req);
 }
 
