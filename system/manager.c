@@ -385,6 +385,9 @@ manager_dispose (GObject *manager)
         self->priv->suspend_bluetooth_services
     );
 
+    self->priv->radio_power_saving = FALSE;
+    on_apply_timeout (self);
+
     g_clear_object (&self->priv->cpufreq);
     g_clear_object (&self->priv->devfreq);
     g_clear_object (&self->priv->kernel_settings);
