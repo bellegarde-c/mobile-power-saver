@@ -21,7 +21,6 @@ bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
 sbin_dir = join_paths(get_option('prefix'), get_option('sbindir'))
 
 
-binder_enabled = get_option('binder')
 wifi_enabled = get_option('wifi')
 cpuset_enabled = get_option('cpuset')
 
@@ -37,10 +36,6 @@ config_h.set_quoted('LOCALEDIR', localedir)
 
 if wifi_enabled
 config_h.set('WIFI_ENABLED', 1)
-endif
-
-if binder_enabled
-config_h.set('BINDER_ENABLED', 1)
 endif
 
 configure_file(output: 'config.h', configuration: config_h)
