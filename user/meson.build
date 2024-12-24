@@ -5,6 +5,7 @@ mps_sources = [
   'main.c',
   'manager.c',
   'mpris.c',
+  'network_manager.c',
   'settings.c',
   '../common/services.c',
   '../common/utils.c'

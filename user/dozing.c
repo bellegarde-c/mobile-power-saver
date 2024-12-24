@@ -10,6 +10,7 @@
 
 #include "bus.h"
 #include "dozing.h"
+#include "network_manager.h"
 #include "settings.h"
 #include "../common/services.h"
 #include "../common/utils.h"
@@ -35,6 +36,7 @@ enum DozingType {
 
 struct _DozingPrivate {
     GList *apps;
+    NetworkManager *network_manager;
     Mpris *mpris;
     Services *services;
 
@@ -136,7 +138,12 @@ freeze_apps (Dozing *self)
 {
     Bus *bus = bus_get_default ();
     const char *app;
+    gboolean data_used;
     gboolean apps_active = FALSE;
+
+    network_manager_stop_modem_monitoring (self->priv->network_manager);
+
+    data_used = network_manager_data_used (self->priv->network_manager);
 
     if (self->priv->apps != NULL) {
         g_message("Freezing apps");
@@ -150,10 +157,10 @@ freeze_apps (Dozing *self)
         }
     }
 
-    /* Some streaming apps are failing if device power is really low */
-    if (apps_active) {
-        g_message ("Phone active: keep little cluster active");
+    if (data_used || apps_active) {
+        g_message ("Phone active: no modem suspend");
     } else {
+        bus_set_value (bus, "suspend-modem", g_variant_new ("b", TRUE));
         bus_set_value (bus,
                        "little-cluster-powersave",
                        g_variant_new ("b", TRUE));
@@ -196,6 +203,7 @@ dozing_dispose (GObject *dozing)
     Dozing *self = DOZING (dozing);
 
     g_clear_object (&self->priv->services);
+    g_clear_object (&self->priv->network_manager);
 
     G_OBJECT_CLASS (dozing_parent_class)->dispose (dozing);
 }
@@ -225,6 +233,7 @@ dozing_init (Dozing *self)
 {
     self->priv = dozing_get_instance_private (self);
 
+    self->priv->network_manager = NETWORK_MANAGER (network_manager_new ());
     self->priv->mpris = MPRIS (mpris_new ());
     self->priv->services = SERVICES (services_new (G_BUS_TYPE_SESSION));
 
@@ -271,6 +280,8 @@ dozing_start (Dozing  *self) {
         (GSourceFunc) freeze_apps,
         self
     );
+
+    network_manager_start_modem_monitoring (self->priv->network_manager);
 }
 
 /**
