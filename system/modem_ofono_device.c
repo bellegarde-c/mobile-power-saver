@@ -12,10 +12,12 @@
 #include "../common/define.h"
 #include "../common/utils.h"
 
-#define OFONO_DBUS_NAME                     "org.ofono"
-#define OFONO_MODEM_DBUS_INTERFACE          "org.ofono.Modem"
-#define OFONO_RADIO_SETTINGS_DBUS_INTERFACE "org.ofono.RadioSettings"
+#define OFONO_DBUS_NAME                           "org.ofono"
+#define OFONO_MODEM_DBUS_INTERFACE                "org.ofono.Modem"
+#define OFONO_RADIO_SETTINGS_DBUS_INTERFACE       "org.ofono.RadioSettings"
+#define OFONO_NETWORK_REGISTRATION_DBUS_INTERFACE "org.ofono.NetworkRegistration"
 
+#define POWERSAVING_MIN_STRENGTH 5
 
 /* props */
 enum {
@@ -35,10 +37,16 @@ static guint signals[LAST_SIGNAL];
 struct _ModemOfonoDevicePrivate {
     GDBusProxy *modem_ofono_device_modem_proxy;
     GDBusProxy *modem_ofono_device_radio_proxy;
+    GDBusProxy *modem_ofono_device_network_proxy;
 
     char *device_path;
 
     guint blacklist;
+
+    gboolean powersaving_enabled;
+    gboolean powersaving_suspended;
+
+    guint timeout_id;
 };
 
 G_DEFINE_TYPE_WITH_CODE (
@@ -49,11 +57,11 @@ G_DEFINE_TYPE_WITH_CODE (
 )
 
 static void
-on_modem_proxy_signal (GDBusProxy *proxy,
-                       const char *sender_name,
-                       const char *signal_name,
-                       GVariant   *parameters,
-                       gpointer    user_data);
+on_proxy_signal (GDBusProxy *proxy,
+                 const char *sender_name,
+                 const char *signal_name,
+                 GVariant   *parameters,
+                 gpointer    user_data);
 
 static void
 set_technology_preference (ModemOfonoDevice *self,
@@ -104,6 +112,29 @@ init_radio (ModemOfonoDevice *self)
         return;
     }
 
+    self->priv->modem_ofono_device_network_proxy = g_dbus_proxy_new_for_bus_sync (
+        G_BUS_TYPE_SYSTEM,
+        0,
+        NULL,
+        OFONO_DBUS_NAME,
+        self->priv->device_path,
+        OFONO_NETWORK_REGISTRATION_DBUS_INTERFACE,
+        NULL,
+        &error
+    );
+
+    if (error != NULL) {
+        g_warning ("Can't connect to OFono network registration: %s", error->message);
+        return;
+    }
+
+    g_signal_connect (
+        self->priv->modem_ofono_device_network_proxy,
+        "g-signal",
+        G_CALLBACK (on_proxy_signal),
+        self
+    );
+
     g_signal_emit_by_name(self, "device-ready", NULL);
 }
 
@@ -135,11 +166,69 @@ is_technology_blacklisted (ModemOfonoDevice *self,
 }
 
 static void
-on_modem_proxy_signal (GDBusProxy *proxy,
-                       const char *sender_name,
-                       const char *signal_name,
-                       GVariant   *parameters,
-                       gpointer    user_data)
+apply_powersave (ModemOfonoDevice *self,
+                 gboolean          powersave)
+{
+    g_autoptr (GError) error = NULL;
+    g_autoptr (GVariant) value = NULL;
+    g_autoptr (GVariantIter) iter = NULL;
+    const char *property_name = NULL;
+    g_autoptr (GVariant) property_value = NULL;
+    g_autofree char *technology = NULL;
+
+    if (self->priv->modem_ofono_device_radio_proxy == NULL)
+        return;
+
+    value = g_dbus_proxy_call_sync (
+        self->priv->modem_ofono_device_radio_proxy,
+        "GetProperties",
+        NULL,
+        G_DBUS_CALL_FLAGS_NONE,
+        -1,
+        NULL,
+        &error
+    );
+
+    if (error != NULL) {
+        g_warning ("Can't get modem properties: %s", error->message);
+        return;
+    }
+
+    g_variant_get (value, "(a{sv})", &iter);
+    while (g_variant_iter_loop (iter, "{&sv}", &property_name, &property_value)) {
+        if (g_strcmp0 (property_name, "AvailableTechnologies") == 0) {
+            g_autoptr (GVariantIter) tech_iter;
+            const char *tech_value;
+
+            g_variant_get (property_value, "as", &tech_iter);
+            while (g_variant_iter_loop (tech_iter, "&s", &tech_value, NULL)) {
+                if (is_technology_blacklisted (self, tech_value))
+                    continue;
+                technology = g_strdup (tech_value);
+                if (powersave)
+                    break;
+            }
+        }
+    }
+
+    set_technology_preference (self, technology);
+}
+
+static gboolean
+set_powersaving_suspended (ModemOfonoDevice *self)
+{
+    self->priv->powersaving_suspended = TRUE;
+    self->priv->timeout_id = 0;
+
+    return FALSE;
+}
+
+static void
+on_proxy_signal (GDBusProxy *proxy,
+                 const char *sender_name,
+                 const char *signal_name,
+                 GVariant   *parameters,
+                 gpointer    user_data)
 {
     ModemOfonoDevice *self = MODEM_OFONO_DEVICE (user_data);
 
@@ -160,6 +249,24 @@ on_modem_proxy_signal (GDBusProxy *proxy,
                     init_radio (self);
                 }
             }
+        } else if (self->priv->powersaving_enabled &&
+                !self->priv->powersaving_suspended &&
+                self->priv->timeout_id == 0 &&
+                g_strcmp0 (name, "Strength") == 0) {
+            guint8 strength = g_variant_get_byte (value);
+
+            if (strength < POWERSAVING_MIN_STRENGTH) {
+                self->priv->timeout_id = g_timeout_add_seconds (
+                    10,
+                    (GSourceFunc) set_powersaving_suspended,
+                    self
+                );
+                apply_powersave (self, FALSE);
+            }
+        } else if (self->priv->powersaving_suspended &&
+                g_strcmp0 (name, "CellId") == 0) {
+            self->priv->powersaving_suspended = FALSE;
+            apply_powersave (self, TRUE);
         }
     }
 }
@@ -230,7 +337,7 @@ modem_ofono_device_constructed (GObject *modem_ofono_device)
     g_signal_connect (
         self->priv->modem_ofono_device_modem_proxy,
         "g-signal",
-        G_CALLBACK (on_modem_proxy_signal),
+        G_CALLBACK (on_proxy_signal),
         self
     );
 
@@ -252,7 +359,7 @@ modem_ofono_device_constructed (GObject *modem_ofono_device)
     g_variant_get (value, "(a{sv})", &iter);
     while (g_variant_iter_loop (iter, "{&sv}", &property_name, &property_value)) {
         if (g_strcmp0 (property_name, "Interfaces") == 0) {
-            on_modem_proxy_signal (
+            on_proxy_signal (
                 self->priv->modem_ofono_device_modem_proxy,
                 NULL,
                 "PropertyChanged",
@@ -272,6 +379,7 @@ modem_ofono_device_dispose (GObject *modem_ofono_device)
 
     g_clear_object (&self->priv->modem_ofono_device_modem_proxy);
     g_clear_object (&self->priv->modem_ofono_device_radio_proxy);
+    g_clear_object (&self->priv->modem_ofono_device_network_proxy);
 
     G_OBJECT_CLASS (modem_ofono_device_parent_class)->dispose (modem_ofono_device);
 }
@@ -282,6 +390,7 @@ modem_ofono_device_finalize (GObject *modem_ofono_device)
     ModemOfonoDevice *self = MODEM_OFONO_DEVICE (modem_ofono_device);
 
     g_free (self->priv->device_path);
+    g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
 
     G_OBJECT_CLASS (modem_ofono_device_parent_class)->finalize (modem_ofono_device);
 }
@@ -330,9 +439,15 @@ modem_ofono_device_init (ModemOfonoDevice *self)
 
     self->priv->modem_ofono_device_modem_proxy = NULL;
     self->priv->modem_ofono_device_radio_proxy = NULL;
+    self->priv->modem_ofono_device_network_proxy = NULL;
 
     /* 2G is deprecated in many countries */
     self->priv->blacklist = MM_MODEM_MODE_CS | MM_MODEM_MODE_2G;
+
+    self->priv->powersaving_enabled = FALSE;
+    self->priv->powersaving_suspended = FALSE;
+
+    self->priv->timeout_id = 0;
 }
 
 /**
@@ -386,46 +501,10 @@ void
 modem_ofono_device_apply_powersave (ModemOfonoDevice *self,
                                     gboolean          powersave)
 {
-    g_autoptr (GError) error = NULL;
-    g_autoptr (GVariant) value = NULL;
-    g_autoptr (GVariantIter) iter = NULL;
-    const char *property_name = NULL;
-    g_autoptr (GVariant) property_value = NULL;
-    g_autofree char *technology = NULL;
+    g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
 
-    if (self->priv->modem_ofono_device_radio_proxy == NULL)
-        return;
+    self->priv->powersaving_enabled = powersave;
+    self->priv->powersaving_suspended = FALSE;
 
-    value = g_dbus_proxy_call_sync (
-        self->priv->modem_ofono_device_radio_proxy,
-        "GetProperties",
-        NULL,
-        G_DBUS_CALL_FLAGS_NONE,
-        -1,
-        NULL,
-        &error
-    );
-
-    if (error != NULL) {
-        g_warning ("Can't get modem properties: %s", error->message);
-        return;
-    }
-
-    g_variant_get (value, "(a{sv})", &iter);
-    while (g_variant_iter_loop (iter, "{&sv}", &property_name, &property_value)) {
-        if (g_strcmp0 (property_name, "AvailableTechnologies") == 0) {
-            g_autoptr (GVariantIter) tech_iter;
-            const char *tech_value;
-
-            g_variant_get (property_value, "as", &tech_iter);
-            while (g_variant_iter_loop (tech_iter, "&s", &tech_value, NULL)) {
-                if (is_technology_blacklisted (self, tech_value))
-                    continue;
-                technology = g_strdup (tech_value);
-                if (powersave)
-                    break;
-            }
-        }
-    }
-    set_technology_preference (self, technology);
+    apply_powersave (self, powersave);
 }

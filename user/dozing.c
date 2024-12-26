@@ -151,7 +151,7 @@ freeze_apps (Dozing *self)
     }
 
     if (apps_active) {
-        g_message ("Phone active: no modem suspend");
+        g_message ("Phone active: Keep little cluster active");
     } else {
         bus_set_value (bus,
                        "little-cluster-powersave",
@@ -208,6 +208,7 @@ dozing_finalize (GObject *dozing)
     Dozing *self = DOZING (dozing);
 
     g_list_free_full (self->priv->apps, g_free);
+    g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
 
     G_OBJECT_CLASS (dozing_parent_class)->finalize (dozing);
 }
