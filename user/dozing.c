@@ -375,6 +375,23 @@ dozing_new (void)
     return dozing;
 }
 
+static Dozing *default_dozing = NULL;
+/**
+ * dozing_get_default:
+ *
+ * Gets the default #Dozing.
+ *
+ * Return value: (transfer full): the default #Dozing.
+ */
+Dozing *
+dozing_get_default (void)
+{
+    if (!default_dozing) {
+        default_dozing = DOZING (dozing_new ());
+    }
+    return default_dozing;
+}
+
 /**
  * dozing_start:
  *
