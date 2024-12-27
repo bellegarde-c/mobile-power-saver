@@ -333,7 +333,9 @@ dozing_init (Dozing *self)
     self->priv->apps = NULL;
     self->priv->type = DOZING_LIGHT;
 
-    self->priv->radio_power_saving = FALSE;
+    self->priv->radio_power_saving = settings_get_radio_powersaving (
+        settings_get_default()
+    );
 
     self->priv->timeout_id = 0;
     self->priv->modem_timeout_id = 0;
