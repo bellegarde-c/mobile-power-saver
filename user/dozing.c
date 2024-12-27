@@ -212,15 +212,12 @@ unfreeze_apps (Dozing *self)
 {
     const char *app;
 
-    if (self->priv->apps == NULL)
-        return FALSE;
+    powersave_modem (self, FALSE);
+    unfreeze_services (self);
 
     g_message("Unfreezing apps");
     GFOREACH (self->priv->apps, app)
         write_to_file (app, "0");
-
-    powersave_modem (self, FALSE);
-    unfreeze_services (self);
 
     queue_next_freeze (self);
 
@@ -402,7 +399,8 @@ dozing_get_default (void)
  * @param #Dozing
  */
 void
-dozing_start (Dozing  *self) {
+dozing_start (Dozing  *self)
+{
     g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
 
     self->priv->apps = get_applications();
@@ -423,13 +421,13 @@ dozing_start (Dozing  *self) {
  * @param #Dozing
  */
 void
-dozing_stop (Dozing  *self) {
-    Bus *bus = bus_get_default ();
+dozing_stop (Dozing  *self)
+{
     const char *app;
 
     g_clear_handle_id (&self->priv->timeout_id, g_source_remove);
 
-    bus_set_value (bus, "suspend-modem", g_variant_new ("b", FALSE));
+    powersave_modem (self, FALSE);
     unfreeze_services (self);
 
     g_message("Unfreezing apps");
