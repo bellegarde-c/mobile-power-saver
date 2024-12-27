@@ -17,7 +17,6 @@
 struct _ManagerPrivate {
     Dozing *dozing;
     Bluetooth *bluetooth;
-    Mpris *mpris;
 
     gboolean screen_off_power_saving;
     gboolean bluetooth_power_saving;
@@ -78,7 +77,6 @@ manager_dispose (GObject *manager)
     dozing_stop (self->priv->dozing);
 
     g_clear_object (&self->priv->dozing);
-    g_clear_object (&self->priv->mpris);
 
     G_OBJECT_CLASS (manager_parent_class)->dispose (manager);
 }
@@ -104,8 +102,8 @@ manager_init (Manager *self)
 {
     self->priv = manager_get_instance_private (self);
 
-    self->priv->mpris = MPRIS (mpris_new ());
-    self->priv->dozing = DOZING (dozing_new (self->priv->mpris));
+
+    self->priv->dozing = DOZING (dozing_new ());
     self->priv->bluetooth = BLUETOOTH (bluetooth_new ());
 
     self->priv->screen_off_power_saving = TRUE;

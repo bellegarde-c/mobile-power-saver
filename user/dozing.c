@@ -365,13 +365,12 @@ dozing_init (Dozing *self)
  *
  **/
 GObject *
-dozing_new (Mpris *mpris)
+dozing_new (void)
 {
     GObject *dozing;
 
     dozing = g_object_new (TYPE_DOZING, NULL);
 
-    DOZING (dozing)->priv->mpris = mpris;
 
     return dozing;
 }

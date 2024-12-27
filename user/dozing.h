@@ -45,7 +45,7 @@ struct _DozingClass {
 
 GType           dozing_get_type            (void) G_GNUC_CONST;
 
-GObject*        dozing_new                 (Mpris   *mpris);
+GObject*        dozing_new                 (void);
 void            dozing_start               (Dozing  *dozing);
 void            dozing_stop                (Dozing  *dozing);
 G_END_DECLS
